@@ -1,4 +1,4 @@
- 🚀 CollabDocs - MERN Stack Collaborative Editor
+# 🚀 CollabDocs - MERN Stack Collaborative Editor
 Realtime collaborative editing powered by MERN + Yjs + Firebase + Socket.IO
 
 <p>
