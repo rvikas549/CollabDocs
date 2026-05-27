@@ -1,5 +1,5 @@
 # 🚀 CollabDocs - MERN Stack Collaborative Editor
-> Realtime collaborative editing powered by MERN + Yjs + Firebase + Socket.IO
+Realtime collaborative editing powered by MERN + Yjs + Firebase + Socket.IO
 
 <p>
   <a href="" target="_blank">
@@ -12,35 +12,6 @@
     📄 Documentation Link
   </a>
 </p>
-
-
-### Realtime Collaborative Document Editing with WebSockets + Yjs
-
-<p align="center">
-  <img src="https://img.shields.io/badge/React-Frontend-blue?logo=react" />
-  <img src="https://img.shields.io/badge/Node.js-Backend-green?logo=node.js" />
-  <img src="https://img.shields.io/badge/MongoDB-Database-darkgreen?logo=mongodb" />
-  <img src="https://img.shields.io/badge/Firebase-Authentication-orange?logo=firebase" />
-  <img src="https://img.shields.io/badge/Socket.IO-Realtime-black?logo=socket.io" />
-  <img src="https://img.shields.io/badge/Yjs-CRDT-purple" />
-</p>
-
----
-
-# 📖 Overview
-
-CollabDocs is a **Realtime Collaborative Document Editing Platform** inspired by Google Docs.
-
-Built using the **MERN Stack**, Firebase Authentication, Socket.IO, TipTap Editor, and Yjs CRDT synchronization.
-
-Users can:
-- Login using Google OAuth or Email/Password
-- Create collaborative documents
-- Share document links
-- Edit documents in realtime
-- Collaborate with multiple users simultaneously
-- View connected collaborators live
-- Sync changes instantly using CRDT architecture
 
 ---
 
@@ -69,17 +40,20 @@ Users can:
 
 ---
 
-# ⚡ Integrations
+# 📖 Overview
 
-```txt
-Frontend  ↔  Backend  ↔  Database
-    │            │
- Socket.IO    Firebase
-       │
-Realtime Collaboration
-       │
-Firebase JWT Authentication
-```
+CollabDocs is a **Realtime Collaborative Document Editing Platform** inspired by Google Docs.
+
+Built using the **MERN Stack**, Firebase Authentication, Socket.IO, TipTap Editor, and Yjs CRDT synchronization.
+
+Users can:
+- Login using Google OAuth or Email/Password
+- Create collaborative documents
+- Share document links
+- Edit documents in realtime
+- Collaborate with multiple users simultaneously
+- View connected collaborators live
+- Sync changes instantly using CRDT architecture
 
 ---
 
@@ -98,7 +72,7 @@ Using Socket.IO rooms:
 - Changes are broadcasted instantly
 - Presence tracking becomes possible
 
----
+
 
 ## 2️⃣ CRDT / Realtime Synchronization
 
@@ -117,6 +91,54 @@ Yjs provides:
 - Distributed synchronization
 - Realtime state merging
 - Peer synchronization
+
+---
+
+# ⚡ Integrations
+
+```txt
+Frontend  ↔  Backend  ↔  Database
+    │            │
+ Socket.IO    Firebase
+       │
+Realtime Collaboration
+       │
+Firebase JWT Authentication
+```
+
+---
+
+# 🔐 Authentication Flow
+
+Firebase handles:
+- Google OAuth
+- Email/Password Login
+- JWT Generation
+
+This avoids implementing:
+- bcrypt hashing
+- JWT signing
+- refresh tokens
+- session invalidation
+- auth route complexity
+
+---
+
+# 🔄 Auth Flow
+
+```txt
+Frontend Login
+      ↓
+Firebase Authentication
+      ↓
+Firebase returns JWT token
+      ↓
+Frontend sends token to backend
+      ↓
+Backend verifies token
+      ↓
+Protected API access
+```
 
 ---
 
@@ -164,39 +186,6 @@ Features:
 
 ---
 
-# 🔐 Authentication Flow
-
-Firebase handles:
-- Google OAuth
-- Email/Password Login
-- JWT Generation
-
-This avoids implementing:
-- bcrypt hashing
-- JWT signing
-- refresh tokens
-- session invalidation
-- auth route complexity
-
----
-
-# 🔄 Auth Flow
-
-```txt
-Frontend Login
-      ↓
-Firebase Authentication
-      ↓
-Firebase returns JWT token
-      ↓
-Frontend sends token to backend
-      ↓
-Backend verifies token
-      ↓
-Protected API access
-```
-
----
 
 # 🏗️ Backend Architecture
 
@@ -482,6 +471,4 @@ Realtime collaboration.
 
 ---
 
-# 🚀 CollabDocs
-
-> Realtime collaborative editing powered by MERN + Yjs + Firebase + Socket.IO
+Thank You!!
