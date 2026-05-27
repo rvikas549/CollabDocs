@@ -1,0 +1,22 @@
+import { WebSocketServer } from 'ws';
+import http from 'http';
+import * as Y from 'yjs';
+import { setupWSConnection } from 'y-websocket/bin/utils';
+
+const server = http.createServer();
+
+const wss = new WebSocketServer({
+  server,
+});
+
+wss.on('connection', (conn, req) => {
+  setupWSConnection(conn, req, {
+    gc: true,
+  });
+});
+
+const PORT = 1234;
+
+server.listen(PORT, () => {
+  console.log(`Yjs WebSocket server running on ${PORT}`);
+});

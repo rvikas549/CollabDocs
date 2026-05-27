@@ -1,0 +1,58 @@
+.tiptap-editor {
+  min-height: 600px;
+  outline: none;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #202124;
+  font-family: 'Inter', sans-serif;
+  border: 2px solid transparent;
+  transition: 0.2s ease;
+  padding: 10px;
+}
+
+/* Focus effect */
+
+.tiptap-editor:focus {
+  border-color: #1a73e8;
+}
+
+/* Paragraph spacing */
+
+.tiptap-editor p {
+  margin: 0 0 16px;
+}
+
+/* Placeholder */
+
+.tiptap-editor p.is-editor-empty:first-child::before {
+  color: #999;
+  content: 'Start typing your ideas here...';
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Headings */
+
+.tiptap-editor h1 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.tiptap-editor h2 {
+  font-size: 26px;
+  margin-bottom: 18px;
+}
+
+/* Lists */
+
+.tiptap-editor ul,
+.tiptap-editor ol {
+  padding-left: 24px;
+}
+
+/* Bold */
+
+.tiptap-editor strong {
+  font-weight: 700;
+}
