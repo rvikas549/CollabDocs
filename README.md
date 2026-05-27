@@ -1,5 +1,18 @@
 # 🚀 CollabDocs - MERN Stack Collaborative Editor
-<a link="https://docs.google.com/document/d/1HLc6pHqYYwaekbBSOsqqAw9oRvYnXLIN5DgGReZSs0g/edit?usp=sharing" rel="Notes">Documentation</a>
+> Realtime collaborative editing powered by MERN + Yjs + Firebase + Socket.IO
+
+<p align="center">
+  <a href="" target="_blank">
+    🔗 Live Url : 
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://docs.google.com" target="_blank">
+    📄 Documentation Link
+  </a>
+</p>
+
 
 ### Realtime Collaborative Document Editing with WebSockets + Yjs
 
