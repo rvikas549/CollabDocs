@@ -1,13 +1,13 @@
 # 🚀 CollabDocs - MERN Stack Collaborative Editor
 > Realtime collaborative editing powered by MERN + Yjs + Firebase + Socket.IO
 
-<p align="center">
+<p>
   <a href="" target="_blank">
-    🔗 Live Url : 
+    🔗 Live Url : Coming Soonn..
   </a>
 </p>
 
-<p align="center">
+<p>
   <a href="https://docs.google.com" target="_blank">
     📄 Documentation Link
   </a>
