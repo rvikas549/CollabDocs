@@ -174,7 +174,7 @@ export default function Editor() {
           height: 72,
           position: 'sticky',
           top: 0,
-          zIndex: 100,
+          zIndex: 1000,
         }}
       >
         {/* Left */}
@@ -318,7 +318,7 @@ export default function Editor() {
                   boxShadow:
                     '0 10px 30px rgba(0,0,0,0.12)',
                   padding: 12,
-                  zIndex: 999,
+                  zIndex: 99999,
                 }}
               >
                 <button
