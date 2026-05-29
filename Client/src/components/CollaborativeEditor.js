@@ -1,23 +1,42 @@
-import { useEditor, EditorContent } from '@tiptap/react';
+import {
+  useEditor,
+  EditorContent,
+} from '@tiptap/react';
+
 import StarterKit from '@tiptap/starter-kit';
+
 import Collaboration from '@tiptap/extension-collaboration';
+
+import Underline from '@tiptap/extension-underline';
+
+import TextAlign from '@tiptap/extension-text-align';
+
 import * as Y from 'yjs';
+
 import { WebsocketProvider } from 'y-websocket';
-import { useMemo, useEffect } from 'react';
+
+import {
+  useMemo,
+  useEffect,
+} from 'react';
+
 import './CollaborativeEditor.css';
 
 export default function CollaborativeEditor({
   docId,
+  onEditorReady,
 }) {
-  // Shared document
+  // Shared Yjs document
   const ydoc = useMemo(() => {
     return new Y.Doc();
   }, []);
 
-  // Websocket provider
+  // WebSocket provider
   const provider = useMemo(() => {
     return new WebsocketProvider(
-      'ws://localhost:1234',
+      process.env
+        .REACT_APP_YJS_URL ||
+        'ws://localhost:1234',
       docId,
       ydoc
     );
@@ -32,12 +51,38 @@ export default function CollaborativeEditor({
         history: false,
       }),
 
+      Underline,
+
+      TextAlign.configure({
+        types: [
+          'heading',
+          'paragraph',
+        ],
+      }),
+
       Collaboration.configure({
         document: ydoc,
       }),
     ],
 
     editorProps: {
+      handleKeyDown(
+        view,
+        event
+      ) {
+        // CMD + S
+        if (
+          event.metaKey &&
+          event.key === 's'
+        ) {
+          event.preventDefault();
+
+          console.log(
+            'Document saved'
+          );
+        }
+      },
+
       attributes: {
         class:
           'tiptap-editor',
@@ -45,17 +90,32 @@ export default function CollaborativeEditor({
     },
   });
 
+  // Send editor instance up
+  useEffect(() => {
+    if (
+      editor &&
+      onEditorReady
+    ) {
+      onEditorReady(editor);
+    }
+  }, [editor]);
+
   // Cleanup
   useEffect(() => {
     return () => {
       provider.destroy();
+
       ydoc.destroy();
     };
   }, [provider, ydoc]);
 
   if (!editor) {
     return (
-      <div style={{ padding: 20 }}>
+      <div
+        style={{
+          padding: 20,
+        }}
+      >
         Loading editor...
       </div>
     );
@@ -66,8 +126,37 @@ export default function CollaborativeEditor({
       style={{
         minHeight: 500,
       }}
+      onDragOver={(e) =>
+        e.preventDefault()
+      }
+      onDrop={async (e) => {
+        e.preventDefault();
+
+        const file =
+          e.dataTransfer.files[0];
+
+        if (
+          file &&
+          file.name.endsWith(
+            '.docx'
+          )
+        ) {
+          const {
+            importDocx,
+          } = await import(
+            '../utils/importDocx'
+          );
+
+          importDocx(
+            file,
+            editor
+          );
+        }
+      }}
     >
-      <EditorContent editor={editor} />
+      <EditorContent
+        editor={editor}
+      />
     </div>
   );
 }
