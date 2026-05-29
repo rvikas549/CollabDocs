@@ -11,6 +11,7 @@ export default function Home() {
   const { user, token } = useAuth();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
 
   const api = axios.create({
     baseURL: 'http://localhost:4000/api',
@@ -257,6 +258,20 @@ export default function Home() {
             </span>
           </button>
         </div>
+        <input
+          placeholder="Search documents..."
+          value={search}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
+          style={{
+            width: '100%',
+            padding: 14,
+            borderRadius: 10,
+            border: '1px solid #ddd',
+            marginBottom: 24,
+          }}
+        />
 
         {/* Recent Documents */}
         <div>
@@ -287,8 +302,30 @@ export default function Home() {
                   'repeat(auto-fill, minmax(220px, 1fr))',
                 gap: 20,
               }}
-            >
-              {docs.map((doc) => (
+              >
+                {/* <input
+                  placeholder="Search documents..."
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(e.target.value)
+                  }
+                  style={{
+                    width: '100%',
+                    padding: 14,
+                    borderRadius: 10,
+                    border: '1px solid #ddd',
+                    marginBottom: 24,
+                  }}
+                /> */}
+                {docs
+                  .filter((doc) =>
+                    doc.title
+                      ?.toLowerCase()
+                      .includes(
+                        search.toLowerCase()
+                      )
+                  )
+                  .map((doc) => (
                 <div
                   key={doc._id}
                   onClick={() =>
@@ -320,7 +357,7 @@ export default function Home() {
                     📄
                   </div>
 
-                  <div
+                  {/* <div
                     style={{
                       fontSize: 15,
                       fontWeight: 600,
@@ -329,7 +366,7 @@ export default function Home() {
                     }}
                   >
                     {doc.title}
-                  </div>
+                  </div> */}
 
                   <div
                     style={{
@@ -340,6 +377,25 @@ export default function Home() {
                     {new Date(
                       doc.updatedAt
                     ).toLocaleDateString()}
+                  </div>
+                  <div
+                    key={doc._id}
+                  >
+                    <h3>{doc.title}</h3>
+
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+
+                        await api.delete(
+                          `/documents/${doc._id}`
+                        );
+
+                        fetchDocs();
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}

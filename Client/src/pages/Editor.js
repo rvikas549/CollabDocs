@@ -5,6 +5,7 @@ import { io } from 'socket.io-client';
 import axios from 'axios';
 import CollaborativeEditor from '../components/CollaborativeEditor';
 import ProfileMenu from '../components/ProfileMenu';
+import EditorToolbar from '../components/EditorToolbar';
 
 export default function Editor() {
   const { id: docId } = useParams();
@@ -20,6 +21,10 @@ export default function Editor() {
     useState('Connecting...');
   const [shareOpen, setShareOpen] =
     useState(false);
+  const [editorInstance, setEditorInstance] =
+  useState(null);
+  const [saveStatus, setSaveStatus] =
+  useState('Saved');
 
   // API instance
   const api = axios.create({
@@ -124,6 +129,27 @@ export default function Editor() {
       setStatus('Save failed');
     }
   };
+  useEffect(() => {
+    if (!editorInstance) return;
+
+    editorInstance.on(
+      'update',
+      () => {
+        setSaveStatus('Saving...');
+
+        clearTimeout(
+          window.saveTimer
+        );
+
+        window.saveTimer =
+          setTimeout(() => {
+            setSaveStatus(
+              'Saved'
+            );
+          }, 800);
+      }
+    );
+  }, [editorInstance]);
 
   return (
     <div
@@ -338,6 +364,14 @@ export default function Editor() {
               </div>
             )}
           </div>
+          <span
+            style={{
+              fontSize: 13,
+              color: '#777',
+            }}
+          >
+            {saveStatus}
+          </span>
 
           {/* Current User */}
           <ProfileMenu
@@ -345,6 +379,11 @@ export default function Editor() {
           />
         </div>
       </div>
+      {/* Toolbar */}
+      <EditorToolbar
+        editor={editorInstance}
+        title={title}
+      />
 
       {/* Editor */}
       <div
@@ -361,16 +400,83 @@ export default function Editor() {
             minHeight: '80vh',
             boxShadow:
               '0 2px 8px rgba(0,0,0,0.08)',
-            padding: '70px 90px',
+            // padding: '70px 90px',
             border: '1px solid #e0e0e0',
             backgroundImage:
               'linear-gradient(to bottom, #ffffff, #fcfcfc)',
           }}
         >
+
+
+          {/* Document Page */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              // padding: '40px 0 80px',
+              background: '#f1f3f4',
+              minHeight: '100vh',
+            }}
+          >
+            <div
+              style={{
+                width: '794px',
+                minHeight: '1123px',
+                background: '#fff',
+                boxShadow:
+                  '0 1px 8px rgba(0,0,0,0.15)',
+                padding:
+                  '20px 20px',
+                borderRadius: 4,
+              }}
+            >
+              <CollaborativeEditor
+                docId={docId}
+                onEditorReady={
+                  setEditorInstance
+                }
+              />
+            </div>
+          </div>
+          {/* <div
+            style={{
+              maxWidth: 900,
+              margin: '40px auto',
+              padding: '0 24px',
+            }}
+          >
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 8,
+                minHeight: '80vh',
+                boxShadow:
+                  '0 2px 8px rgba(0,0,0,0.08)',
+                padding: '70px 90px',
+                border: '1px solid #e0e0e0',
+                backgroundImage:
+                  'linear-gradient(to bottom, #ffffff, #fcfcfc)',
+              }}
+            >
+              <CollaborativeEditor
+                docId={docId}
+                user={user}
+                onEditorReady={
+                  setEditorInstance
+                }
+              />
+            </div>
+          </div> */}
+          {/* <EditorToolbar
+            editor={editorInstance}
+          />
           <CollaborativeEditor
             docId={docId}
             user={user}
-          />
+            onEditorReady={
+              setEditorInstance
+            }
+          /> */}
         </div>
       </div>
     </div>
