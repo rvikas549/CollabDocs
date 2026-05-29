@@ -110,7 +110,8 @@ wss.on(
   }
 );
 
-const PORT = 1234;
+// const PORT = 1234;
+const PORT = process.env.PORTFORYJS || 1234;
 
 server.listen(PORT, () => {
   console.log(
