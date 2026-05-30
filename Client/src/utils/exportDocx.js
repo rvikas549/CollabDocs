@@ -18,13 +18,17 @@ export async function exportToDocx(
 
   const paragraphs = [];
 
-  function traverse(node) {
+  function walk(node) {
     if (!node) return;
 
-    if (node.type === 'heading') {
+    if (
+      node.type === 'heading'
+    ) {
       const text =
         node.content
-          ?.map((c) => c.text || '')
+          ?.map(
+            (c) => c.text || ''
+          )
           .join('') || '';
 
       paragraphs.push(
@@ -46,24 +50,30 @@ export async function exportToDocx(
     ) {
       const text =
         node.content
-          ?.map((c) => c.text || '')
+          ?.map(
+            (c) => c.text || ''
+          )
           .join('') || '';
 
-      paragraphs.push(
-        new Paragraph({
-          children: [
-            new TextRun(text),
-          ],
-        })
-      );
+      if (text.trim()) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun(
+                text
+              ),
+            ],
+          })
+        );
+      }
     }
 
     node.content?.forEach(
-      traverse
+      walk
     );
   }
 
-  traverse(json);
+  walk(json);
 
   const doc =
     new Document({
