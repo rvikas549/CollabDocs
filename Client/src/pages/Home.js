@@ -14,7 +14,7 @@ export default function Home() {
   const [search, setSearch] = useState('');
 
   const api = axios.create({
-    baseURL: 'http://localhost:4000/api',
+    baseURL: process.env.REACT_APP_API_URL,
     headers: { Authorization: `Bearer ${token}` },
   });
 

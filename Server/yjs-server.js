@@ -38,6 +38,10 @@ async function loadDocument(docName) {
   }
 
   ydoc = new Y.Doc();
+  console.log(
+  'DOCUMENT LOADED:',
+  docName
+);
 
   // Load saved binary state
   const existing =
@@ -60,6 +64,11 @@ async function loadDocument(docName) {
   ydoc.on(
     'update',
     async (update) => {
+    console.log(
+      'UPDATE EVENT FIRED',
+      docName,
+      update.length
+    );
       try {
         const merged =
           Y.encodeStateAsUpdate(ydoc);
@@ -74,6 +83,11 @@ async function loadDocument(docName) {
           {
             upsert: true,
           }
+        );
+
+        console.log(
+          'YJS UPDATE RECEIVED:',
+          docName
         );
 
         console.log(
@@ -93,25 +107,59 @@ async function loadDocument(docName) {
   return ydoc;
 }
 
+
+
 // WebSocket connection
 wss.on(
   'connection',
   async (conn, req) => {
+    console.log(
+      'NEW CONNECTION:',
+      req.url
+    );
+
     const docName =
       req.url.slice(1).split('?')[0];
+
+    console.log(
+      'DOC NAME:',
+      docName
+    );
 
     const ydoc =
       await loadDocument(docName);
 
+    console.log(
+      'YDOC CREATED'
+    );
+
     setupWSConnection(conn, req, {
-      doc: ydoc,
       gc: true,
     });
   }
 );
+// wss.on(
+//   'connection',
+//   async (conn, req) => {
+//     const docName =
+//       req.url.slice(1).split('?')[0];
+
+//     const ydoc =
+//       await loadDocument(docName);
+
+//     setupWSConnection(conn, req, {
+//       doc: ydoc,
+//       gc: true,
+//     });
+//   }
+// );
 
 // const PORT = 1234;
-const PORT = process.env.PORT || 1234;
+// const PORT = process.env.PORT || 1234;
+const PORT =
+  process.env.RENDER
+    ? process.env.PORT
+    : process.env.YJS_PORT || 1234;
 
 server.listen(
   PORT,

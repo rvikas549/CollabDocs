@@ -96,8 +96,13 @@ export default function Editor() {
     api
       .get(`/documents/${docId}`)
       .then((res) => {
-        setTitle(res.data.title);
-      })
+        setTitle(
+          res.data.title
+        );
+
+        window.loadedContent =
+      res.data.content;
+  })
       .catch(console.error);
 
     return () => {
@@ -111,6 +116,7 @@ export default function Editor() {
     e
   ) => {
     const newTitle = e.target.value;
+    
 
     setTitle(newTitle);
 
@@ -132,6 +138,27 @@ export default function Editor() {
   useEffect(() => {
     if (!editorInstance) return;
 
+    const saveDocument = async () => {
+      try {
+        await api.patch(
+          `/documents/${docId}`,
+          {
+            title,
+            content:
+              editorInstance.getJSON(),
+          }
+        );
+
+        setSaveStatus('Saved');
+      } catch (err) {
+        console.error(err);
+
+        setSaveStatus(
+          'Save failed'
+        );
+      }
+    };
+
     editorInstance.on(
       'update',
       () => {
@@ -142,14 +169,38 @@ export default function Editor() {
         );
 
         window.saveTimer =
-          setTimeout(() => {
-            setSaveStatus(
-              'Saved'
-            );
-          }, 800);
+          setTimeout(
+            saveDocument,
+            1000
+          );
       }
     );
-  }, [editorInstance]);
+  }, [
+    editorInstance,
+    docId,
+    title,
+  ]);
+  // useEffect(() => {
+  //   if (!editorInstance) return;
+
+  //   editorInstance.on(
+  //     'update',
+  //     () => {
+  //       setSaveStatus('Saving...');
+
+  //       clearTimeout(
+  //         window.saveTimer
+  //       );
+
+  //       window.saveTimer =
+  //         setTimeout(() => {
+  //           setSaveStatus(
+  //             'Saved'
+  //           );
+  //         }, 800);
+  //     }
+  //   );
+  // }, [editorInstance]);
 
   return (
     <div

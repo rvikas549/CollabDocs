@@ -30,7 +30,10 @@ export default function CollaborativeEditor({
   const ydoc = useMemo(() => {
     return new Y.Doc();
   }, []);
-
+console.log(
+  'YJS URL:',
+  process.env.REACT_APP_YJS_URL
+);
   // WebSocket provider
   const provider = useMemo(() => {
     return new WebsocketProvider(
@@ -41,6 +44,12 @@ export default function CollaborativeEditor({
       ydoc
     );
   }, [docId, ydoc]);
+  provider.on('status', (event) => {
+  console.log(
+    'YJS STATUS:',
+    event.status
+  );
+});
 
   // TipTap editor
   const editor = useEditor({
@@ -89,6 +98,20 @@ export default function CollaborativeEditor({
       },
     },
   });
+
+  useEffect(() => {
+    if (
+      editor &&
+      window.loadedContent &&
+      Object.keys(
+        window.loadedContent
+      ).length
+    ) {
+      editor.commands.setContent(
+        window.loadedContent
+      );
+    }
+  }, [editor]);
 
   // Send editor instance up
   useEffect(() => {
