@@ -14,10 +14,10 @@
 ## 🌐 Live Demo
 
 🚀 **Live App:**  
-https://collab-docs-lilac.vercel.app
+[CollabDocs](https://collab-docs-lilac.vercel.app)
 
-🚀 **Documentation:**  
-https://docs.google.com/document/d/1HLc6pHqYYwaekbBSOsqqAw9oRvYnXLIN5DgGReZSs0g/edit?tab=t.0
+📚 **Documentation:**  
+[CollabDocs Documentation](https://docs.google.com/document/d/1HLc6pHqYYwaekbBSOsqqAw9oRvYnXLIN5DgGReZSs0g/edit?tab=t.0)
 
 ---
 
