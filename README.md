@@ -1,341 +1,232 @@
 # 🚀 CollabDocs
 
-### Realtime collaborative editing powered by MERN + Yjs + Firebase + Socket.IO
+### Realtime Collaborative Document Editor powered by MERN + Yjs + Firebase
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-Frontend-blue?logo=react" />
   <img src="https://img.shields.io/badge/Node.js-Backend-green?logo=node.js" />
-  <img src="https://img.shields.io/badge/MongoDB-Database-darkgreen?logo=mongodb" />
+  <img src="https://img.shields.io/badge/MongoDB_Atlas-Database-darkgreen?logo=mongodb" />
   <img src="https://img.shields.io/badge/Firebase-Authentication-orange?logo=firebase" />
-  <img src="https://img.shields.io/badge/Socket.IO-Realtime-black?logo=socket.io" />
   <img src="https://img.shields.io/badge/Yjs-CRDT-purple" />
 </p>
 
-<p align="center">
-  <a href="" target="_blank">
-    🌐 Live Demo (Coming Soon)
-  </a>
-  &nbsp;&nbsp;•&nbsp;&nbsp;
-  <a href="https://docs.google.com" target="_blank">
-    📄 Documentation Link
-  </a>
-</p>
 
-<br/>
+## 🌐 Live Demo
+
+🚀 **Live App:**  
+https://collab-docs-lilac.vercel.app
+
+---
 
 # 📖 Overview
 
-CollabDocs is a realtime collaborative document editing platform inspired by Google Docs.
+CollabDocs is a Google Docs inspired realtime collaborative editor.
 
-Built using:
-- MERN Stack
-- Firebase Authentication
-- Socket.IO
-- TipTap Editor
-- Yjs CRDT synchronization
+Users can create documents, share links, edit together instantly, import/export documents, and securely access their workspace.
 
-Users can:
-- Login using Google OAuth or Email/Password
-- Create collaborative documents
-- Share document links
-- Collaborate with multiple users simultaneously
-- Sync edits instantly in realtime
-- View connected collaborators live
-- Work on shared documents together
+Built with realtime synchronization using Yjs CRDT architecture.
 
-<br/>
+---
+
+# ✨ Features
+
+- 🔐 Google Authentication
+- 📄 Create & manage documents
+- ✍️ Rich text editor using TipTap
+- 👥 Realtime multi-user collaboration
+- 🔗 Share document links
+- 💾 Automatic document persistence
+- 📥 DOCX Import
+- 📤 DOCX Export
+- ☁️ Cloud deployed architecture
+
+---
 
 # 🛠️ Tech Stack
 
-## 🎨 Frontend
-- ⚛️ React JS
-- ✍️ TipTap Editor
-- 🔄 Yjs
-- 🔌 Socket.IO Client
-- 📡 Axios
-- 🔐 Firebase Authentication
+## Frontend
+- React JS
+- TipTap Editor
+- Yjs Client
+- Firebase Auth
+- Axios
+- Vercel
 
-## ⚙️ Backend
-- 🟢 Node JS
-- 🚂 Express JS
-- 🔌 Socket.IO
-- 🔑 Firebase Admin SDK
+## Backend API
+- Node JS
+- Express JS
+- Firebase Admin SDK
+- MongoDB Atlas
+- Render
 
-## 🗄️ Database
-- 🍃 MongoDB
+## Realtime Server
+- Yjs
+- WebSocket
+- MongoDB Persistence
+- Render
 
-## 🔒 Authentication
-- 🔥 Firebase OAuth
-- 🪪 Firebase-issued JWT Authentication
-
-<br/>
+---
 
 # 🏗️ Architecture
 
 ```txt
-             ┌─────────────────────┐
-             │     Frontend        │
-             │      React JS       │
-             └─────────┬───────────┘
-                       │
-             Firebase Authentication
-                       │
-                 JWT Token
-                       │
-                       ▼
-             ┌─────────────────────┐
-             │      Backend        │
-             │   Node + Express    │
-             └─────────┬───────────┘
-                       │
-         ┌─────────────┴─────────────┐
-         │                           │
-         ▼                           ▼
-  Socket.IO Server             MongoDB
-  Realtime Rooms              Persistence
-         │
-         ▼
-   Yjs Collaboration
-         │
-         ▼
-   Connected Users
+                 User
+                  |
+                  ↓
+          React Frontend (Vercel)
+                  |
+        ┌─────────┴──────────┐
+        |                    |
+        ↓                    ↓
+
+ REST API Server        Yjs WebSocket Server
+ Node + Express         Realtime Sync
+ Firebase Admin         CRDT Updates
+        |                    |
+        ↓                    ↓
+
+ Documents DB        Yjs Persistence DB
+
+              MongoDB Atlas
 ```
 
-<br/>
+---
 
-# ⚡ Integrations
-
-```txt
-Frontend  ↔  Backend  ↔  Database
-    │            │
- Socket.IO    Firebase
-       │
-Realtime Collaboration
-       │
-Firebase JWT Authentication
-```
-
-<br/>
-
-# 🔥 Key Concepts Used
-
-## 1️⃣ Rooms (Realtime Collaboration)
-
-Each document acts as a shared room.
+# 🔐 Authentication Flow
 
 ```txt
-Shared Link → Join Room → Collaborate Realtime
-```
-
-Using Socket.IO rooms:
-- Multiple users can join the same document
-- Changes are broadcasted instantly
-- Presence tracking becomes possible
-
-## 2️⃣ CRDT / Realtime Synchronization
-
-This project uses Yjs (CRDT-based architecture).
-
-### Why Yjs?
-
-Traditional collaboration systems use:
-- OT (Operational Transformation)
-
-Modern systems prefer:
-- CRDT (Conflict-free Replicated Data Types)
-
-Yjs provides:
-- Conflict-free editing
-- Distributed synchronization
-- Realtime state merging
-- Peer synchronization
-
-## 3️⃣ Firebase Authentication
-
-Firebase handles:
-- Google OAuth
-- Email/Password Login
-- JWT Token Generation
-
-This avoids implementing:
-- bcrypt hashing
-- JWT signing
-- refresh tokens
-- session invalidation
-- auth route complexity
-
-<br/>
-
-# 🔄 Authentication Flow
-
-```txt
-Frontend Login
+Google Login
       ↓
 Firebase Authentication
       ↓
-Firebase returns JWT token
+Firebase JWT Token
       ↓
-Frontend sends token to backend
+Backend Verification
       ↓
-Backend verifies token
-      ↓
-Protected API access
+Protected APIs
 ```
 
-<br/>
+---
 
-# 🧠 Yjs Collaboration Flow
+# 🧠 Collaboration Flow
 
 ```txt
 TipTap Editor
-     ↓
+      ↓
 Yjs Document
-     ↓
+      ↓
 WebSocket Provider
-     ↓
-Realtime Sync
-     ↓
-All Connected Users
+      ↓
+Yjs Server
+      ↓
+MongoDB Persistence
+      ↓
+All Users Sync
 ```
 
-<br/>
-
-# 🔒 Secure Socket.IO Authentication
-
-Socket.IO connections are protected using Firebase JWT tokens.
-
-Unauthorized users cannot:
-- connect sockets
-- join rooms
-- access collaborative sessions
-
-This creates a production-style collaborative architecture.
-
-<br/>
+---
 
 # 📂 Folder Structure
 
 ```txt
 CollabDocs/
-│
+
 ├── Client/
 │   ├── src/
 │   ├── public/
-│   ├── .env
 │   └── package.json
-│
+
 ├── Server/
-│   ├── routes/
-│   ├── models/
-│   ├── middleware/
-│   ├── sockets/
 │   ├── config/
-│   ├── .env
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── socket/
+│   ├── index.js
 │   ├── yjs-server.js
 │   └── package.json
 ```
 
-<br/>
+---
 
 # ⚙️ Environment Variables
 
-## 📦 Client `.env`
-
-Create:
-
-```txt
-Client/.env
-```
-
-Add:
+## Client `.env`
 
 ```env
-REACT_APP_FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY
-
-REACT_APP_FIREBASE_AUTH_DOMAIN=YOUR_FIREBASE_AUTH_DOMAIN
-
-REACT_APP_FIREBASE_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID
-
-REACT_APP_FIREBASE_STORAGE_BUCKET=YOUR_FIREBASE_STORAGE_BUCKET
-
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=YOUR_FIREBASE_MESSAGING_SENDER_ID
-
-REACT_APP_FIREBASE_APP_ID=YOUR_FIREBASE_APP_ID
-
 REACT_APP_API_URL=http://localhost:4000/api
 
 REACT_APP_SOCKET_URL=http://localhost:4000
 
 REACT_APP_YJS_URL=ws://localhost:1234
+
+
+REACT_APP_FIREBASE_API_KEY=
+
+REACT_APP_FIREBASE_AUTH_DOMAIN=
+
+REACT_APP_FIREBASE_PROJECT_ID=
+
+REACT_APP_FIREBASE_STORAGE_BUCKET=
+
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=
+
+REACT_APP_FIREBASE_APP_ID=
 ```
 
-## 📦 Server `.env`
+Production:
 
-Create:
+```env
+REACT_APP_API_URL=https://your-api.onrender.com/api
 
-```txt
-Server/.env
+REACT_APP_SOCKET_URL=https://your-api.onrender.com
+
+REACT_APP_YJS_URL=wss://your-yjs-server.onrender.com
 ```
 
-Add:
+---
+
+## Server `.env`
 
 ```env
 PORT=4000
 
-MONGO_URI=mongodb://localhost:27017/collabdocs
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/database
+
 
 CLIENT_URL=http://localhost:3000
+
+
+FIREBASE_PROJECT_ID=
+
+FIREBASE_CLIENT_EMAIL=
+
+FIREBASE_PRIVATE_KEY=
 ```
 
-<br/>
+---
 
-# 🔑 Firebase Admin SDK
+## Yjs Server ENV
 
-Download Firebase Admin SDK JSON file:
+```env
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/database
 
-```txt
-serviceAccountKey.json
+PORT=1234
 ```
 
-Place it inside:
+---
 
-```txt
-Server/config/
+# ▶️ Run Locally
+
+Clone repository:
+
+```bash
+git clone <repo-url>
 ```
 
-⚠️ IMPORTANT:
-Never push this file to GitHub.
+---
 
-This file contains:
-- Firebase admin credentials
-- database access
-- backend authentication privileges
-
-<br/>
-
-# 🚫 `.gitignore`
-
-Create/update:
-
-```txt
-.gitignore
-```
-
-Add:
-
-```gitignore
-node_modules
-
-.env
-
-serviceAccountKey.json
-```
-
-<br/>
-
-# ▶️ Running the Project
-
-## 1️⃣ Frontend
+Install frontend:
 
 ```bash
 cd Client
@@ -345,7 +236,9 @@ npm install
 npm start
 ```
 
-## 2️⃣ Backend
+---
+
+Run API server:
 
 ```bash
 cd Server
@@ -355,7 +248,9 @@ npm install
 npm run dev
 ```
 
-## 3️⃣ Yjs WebSocket Server
+---
+
+Run Yjs server:
 
 ```bash
 cd Server
@@ -363,108 +258,99 @@ cd Server
 node yjs-server.js
 ```
 
-<br/>
+---
 
-# ⚔️ Challenges Faced
+# 🚀 Deployment
 
-## Understanding Realtime Systems
+## Frontend
 
-Learning:
-- WebSockets
-- Socket.IO
-- Yjs
-- CRDT architecture
-- collaborative synchronization
+Hosted on:
 
-was one of the biggest challenges.
+```txt
+Vercel
+```
 
-## Realtime Collaboration Complexity
+## Backend API
 
-Handling:
-- simultaneous edits
-- synchronization
-- merge conflicts
-- distributed updates
+Hosted on:
 
-requires distributed systems thinking.
+```txt
+Render Web Service
+```
 
-## Production Authentication
+## Yjs Server
 
-Using Firebase simplified:
-- authentication flow
-- token handling
-- OAuth integration
-- security architecture
+Hosted on:
 
-while maintaining production-grade authentication.
+```txt
+Render Web Service
+```
 
-<br/>
+## Database
+
+Hosted on:
+
+```txt
+MongoDB Atlas
+```
+
+---
+
+# 🔥 Phase 1 Completed
+
+Implemented:
+
+```txt
+Authentication        ✅
+
+Document CRUD         ✅
+
+Realtime Editing      ✅
+
+Yjs Persistence       ✅
+
+DOCX Import/Export    ✅
+
+Sharing               ✅
+
+Cloud Deployment      ✅
+```
+
+---
 
 # 🌍 Future Improvements
 
-- DOCX Export
-- DOCX Import
-- Drag & Drop Uploads
-- Rich Text Toolbar
-- Collaborative Cursor Presence
-- Persistent Yjs State
-- Deployment
-- Role-based permissions
-- Cloud Storage
+- Live cursor presence
+- User avatars while editing
+- Comments
+- Version history
+- Document permissions
+- Templates
+- AI document assistant
+- PDF export
+- Custom domain
 
-<br/>
+---
 
-# 🧑‍💻 Author
+# 🧑‍💻 Built With
 
-Built with:
 - MERN Stack
 - Firebase
-- Socket.IO
-- Yjs
 - TipTap
+- Yjs
+- WebSocket
+- MongoDB Atlas
 
-while learning:
-- distributed systems
-- realtime synchronization
+Learning:
+- Realtime systems
 - CRDT architecture
-- collaborative software engineering
+- Cloud deployment
+- Authentication systems
 
-<br/>
+---
 
-# 📌 Realtime Collaboration Demo
+# ⭐ CollabDocs
 
-```txt
-User A types
-      ↓
-Yjs Sync
-      ↓
-Socket Transport
-      ↓
-User B instantly receives updates
-```
-No refreshes.  
-No merge conflicts.  
-Realtime collaboration.
+> Create. Share. Collaborate. Anywhere.
 
-<br/>
-
-# ⭐ Final Thoughts
-
-Building realtime collaborative systems is significantly more complex than traditional CRUD applications.
-
-This project helped explore:
-- WebSockets
-- Realtime synchronization
-- Distributed state management
-- Authentication architecture
-- Collaborative editing systems
-
-<br/>
-
-# 🚀 CollabDocs
-
-> Realtime collaborative editing powered by MERN + Yjs + Firebase + Socket.IO
-
-<br/>
-
-## Thank You 🩷
+THANK YOU 🩷
