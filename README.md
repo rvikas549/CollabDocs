@@ -14,7 +14,7 @@
 ## 🌐 Live Demo
 
 🚀 **Live App:**  
-[CollabDocs](https://collab-docs-lilac.vercel.app)
+https://collab-docs-lilac.vercel.app
 
 📚 **Documentation:**  
 [CollabDocs Documentation](https://docs.google.com/document/d/1HLc6pHqYYwaekbBSOsqqAw9oRvYnXLIN5DgGReZSs0g/edit?tab=t.0)
