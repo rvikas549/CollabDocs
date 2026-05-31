@@ -442,7 +442,6 @@ Socket Transport
       ↓
 User B instantly receives updates
 ```
-
 No refreshes.  
 No merge conflicts.  
 Realtime collaboration.
