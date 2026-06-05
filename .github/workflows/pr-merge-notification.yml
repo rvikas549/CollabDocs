@@ -1,0 +1,37 @@
+name: PR Merge Notification to Main
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  notify-pr-merge:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Send Email Notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.EMAIL_SERVER }}
+          server_port: ${{ secrets.EMAIL_PORT }}
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "🎉 PR Merged to Main - ${{ github.repository }}"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: ${{ secrets.EMAIL_USER }}
+          body: |
+            ✅ PR Merged to Main!
+            
+            PR Title: ${{ github.event.pull_request.title }}
+            PR #: ${{ github.event.pull_request.number }}
+            Author: ${{ github.event.pull_request.user.login }}
+            Repository: ${{ github.repository }}
+            Merged By: ${{ github.event.pull_request.merged_by.login }}
+            
+            View PR: ${{ github.event.pull_request.html_url }}
+          content_type: text/html
