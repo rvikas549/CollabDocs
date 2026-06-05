@@ -21,6 +21,9 @@ https://collab-docs-lilac.vercel.app
 
 ---
 
+## CI/CD Workflow 
+For Every PR merge there will be Email Notication be sent,
+
 # 📖 Overview
 
 CollabDocs is a Google Docs inspired realtime collaborative editor.
