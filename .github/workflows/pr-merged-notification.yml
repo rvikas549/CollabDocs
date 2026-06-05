@@ -9,7 +9,7 @@ jobs:
 notify:
 if: github.event.pull_request.merged == true
 
-```
+
 runs-on: ubuntu-latest
 
 steps:
@@ -51,4 +51,3 @@ steps:
         <p>
           This PR has been successfully merged into <strong>main</strong>.
         </p>
-```
