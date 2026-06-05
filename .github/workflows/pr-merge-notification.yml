@@ -1,0 +1,64 @@
+name: PR Merge Notification to Main
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  notify-pr-merge:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Send Email Notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.EMAIL_SERVER }}
+          server_port: ${{ secrets.EMAIL_PORT }}
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          
+          subject: "🎉 PR Merged to Main Branch - ${{ github.repository }}"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: ${{ secrets.EMAIL_USER }}
+          
+          body: |
+            ✅ Pull Request Successfully Merged to Main Branch!
+            
+            📋 PR Details:
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            PR Title: ${{ github.event.pull_request.title }}
+            PR Number: #${{ github.event.pull_request.number }}
+            Author: ${{ github.event.pull_request.user.login }}
+            Repository: ${{ github.repository }}
+            
+            📝 Description:
+            ${{ github.event.pull_request.body }}
+            
+            🔗 Links:
+            PR Link: ${{ github.event.pull_request.html_url }}
+            Repository: https://github.com/${{ github.repository }}
+            
+            ⏰ Merged At: ${{ github.event.pull_request.merged_at }}
+            Merged By: ${{ github.event.pull_request.merged_by.login }}
+            
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            Branch: ${{ github.event.pull_request.base.ref }}
+            Commit: ${{ github.event.pull_request.merge_commit_sha }}
+            
+            This is an automated notification from GitHub Actions.
+          
+          reply_to: ${{ secrets.EMAIL_USER }}
+          content_type: text/html
+          
+      - name: Log Notification Sent
+        run: |
+          echo "✅ Email notification sent successfully!"
+          echo "To: ${{ secrets.NOTIFICATION_EMAIL }}"
+          echo "PR: ${{ github.event.pull_request.title }}"
+          echo "Repository: ${{ github.repository }}"
