@@ -1,0 +1,54 @@
+name: PR Merge Notification
+
+on:
+pull_request:
+types:
+- closed
+
+jobs:
+notify:
+if: github.event.pull_request.merged == true
+
+```
+runs-on: ubuntu-latest
+
+steps:
+  - name: Send Email Notification
+    uses: dawidd6/action-send-mail@v3
+
+    with:
+      server_address: smtp.gmail.com
+      server_port: 465
+
+      username: ${{ secrets.EMAIL_USERNAME }}
+      password: ${{ secrets.EMAIL_PASSWORD }}
+
+      subject: "🚀 PR Merged into Main - CollabDocs"
+
+      to: rvikas549@gmail.com
+
+      from: GitHub Actions
+
+      html_body: |
+        <h2>Pull Request Merged</h2>
+
+        <p><strong>Repository:</strong> ${{ github.repository }}</p>
+
+        <p><strong>PR Title:</strong> ${{ github.event.pull_request.title }}</p>
+
+        <p><strong>Merged By:</strong> ${{ github.event.pull_request.merged_by.login }}</p>
+
+        <p><strong>Branch:</strong> ${{ github.event.pull_request.head.ref }}</p>
+
+        <p>
+          <a href="${{ github.event.pull_request.html_url }}">
+            View Pull Request
+          </a>
+        </p>
+
+        <hr />
+
+        <p>
+          This PR has been successfully merged into <strong>main</strong>.
+        </p>
+```
