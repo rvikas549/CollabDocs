@@ -1,138 +1,59 @@
-import { useState, useRef, useEffect } from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
-export default function ProfileMenu({
-  user,
-}) {
-  const [open, setOpen] = useState(false);
+import { Keyboard, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { Avatar } from './ui/Avatar';
+import Dropdown from './ui/Dropdown';
 
-  const menuRef = useRef();
+export default function ProfileMenu({ onShowShortcuts }) {
+  const { user, signOut } = useAuth();
+  const toast = useToast();
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target)
-      ) {
-        setOpen(false);
-      }
-    };
+  if (!user) return null;
 
-    document.addEventListener(
-      'mousedown',
-      handleClickOutside
-    );
-
-    return () => {
-      document.removeEventListener(
-        'mousedown',
-        handleClickOutside
-      );
-    };
-  }, []);
-
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await signOut();
     } catch (err) {
-      console.error(err);
+      toast.error(err.message);
     }
   };
 
   return (
-    <div
-      ref={menuRef}
-      style={{
-        position: 'relative',
-        justifyContent: 'flex-end'
-      }}
+    <Dropdown
+      width={250}
+      trigger={({ toggle }) => (
+        <button type="button" className="profile-trigger" onClick={toggle} aria-label="Account menu">
+          <Avatar name={user.displayName} src={user.photoURL} seed={user.uid} size={34} />
+        </button>
+      )}
     >
-      {/* Avatar */}
-      <img
-        src={user?.photoURL}
-        alt="profile"
-        onClick={() => setOpen(!open)}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          cursor: 'pointer',
-          objectFit: 'cover',
-          border: '2px solid #e0e0e0',
-        }}
-      />
-
-      {/* Dropdown */}
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 50,
-            width: 240,
-            background: '#fff',
-            borderRadius: 14,
-            boxShadow:
-              '0 10px 30px rgba(0,0,0,0.12)',
-            overflow: 'hidden',
-            zIndex: 999,
-          }}
-        >
-          {/* User Info */}
-          <div
-            style={{
-              padding: 18,
-              borderBottom:
-                '1px solid #f0f0f0',
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 600,
-                color: '#202124',
-                marginBottom: 4,
-              }}
-            >
-              {user?.displayName}
-            </div>
-
-            <div
-              style={{
-                fontSize: 13,
-                color: '#666',
-              }}
-            >
-              {user?.email}
+      {({ close }) => (
+        <>
+          <div className="profile-head">
+            <Avatar name={user.displayName} src={user.photoURL} seed={user.uid} size={38} />
+            <div style={{ minWidth: 0 }}>
+              <div className="profile-name">{user.displayName}</div>
+              <div className="profile-email">{user.email}</div>
             </div>
           </div>
-
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: '14px 18px',
-              border: 'none',
-              background: 'white',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontSize: 14,
-              color: '#d93025',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background =
-                '#f8f9fa';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background =
-                'white';
-            }}
-          >
-            Logout
+          <div className="menu-sep" />
+          {onShowShortcuts && (
+            <button
+              type="button"
+              className="menu-item"
+              onClick={() => {
+                close();
+                onShowShortcuts();
+              }}
+            >
+              <Keyboard /> Keyboard shortcuts
+            </button>
+          )}
+          <button type="button" className="menu-item danger" onClick={handleSignOut}>
+            <LogOut /> Sign out
           </button>
-        </div>
+        </>
       )}
-    </div>
+    </Dropdown>
   );
 }
