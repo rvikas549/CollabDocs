@@ -1,16 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { CornerDownLeft, FilePlus2, FileText, House, LogOut, Moon, Search, Sun } from 'lucide-react';
+import { CornerDownLeft, FilePlus2, FileText, House, LogOut, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { docsApi } from '../lib/docsApi';
 import { apiError } from '../config/api';
 import { timeAgo } from '../lib/utils';
 
 const PaletteContext = createContext(null);
-const GROUP_ORDER = ['This document', 'Actions', 'Documents', 'Navigation', 'Preferences', 'Account'];
+const GROUP_ORDER = ['This document', 'Actions', 'Documents', 'Navigation', 'Account'];
 
 let docsCache = null;
 
@@ -87,7 +86,6 @@ function score(cmd, query) {
 function CommandPalette({ contextual, onClose }) {
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { theme, toggle } = useTheme();
   const toast = useToast();
 
   const [query, setQuery] = useState('');
@@ -119,14 +117,6 @@ function CommandPalette({ contextual, onClose }) {
         },
       },
       { id: 'home', group: 'Navigation', title: 'Go to dashboard', icon: House, keywords: 'home all documents', run: () => navigate('/') },
-      {
-        id: 'theme',
-        group: 'Preferences',
-        title: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
-        icon: theme === 'dark' ? Sun : Moon,
-        keywords: 'theme appearance dark light',
-        run: toggle,
-      },
       { id: 'sign-out', group: 'Account', title: 'Sign out', icon: LogOut, keywords: 'logout log out', run: signOut },
     ];
 
@@ -142,7 +132,7 @@ function CommandPalette({ contextual, onClose }) {
     }));
 
     return [...contextual, ...base, ...documents];
-  }, [contextual, docs, navigate, signOut, theme, toggle]);
+  }, [contextual, docs, navigate, signOut]);
 
   const results = useMemo(() => {
     const scored = commands
@@ -256,7 +246,6 @@ function CommandPalette({ contextual, onClose }) {
           <span>
             <kbd>↵</kbd> open
           </span>
-          <span className="palette-foot__brand">CollabDocs</span>
         </div>
       </div>
     </div>,

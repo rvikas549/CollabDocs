@@ -1,39 +1,24 @@
 import { useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  FileText,
-  Laptop,
-  Lock,
-  Mail,
-  MousePointer2,
-  ServerCrash,
-  Sparkles,
-  User,
-  Zap,
-} from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { apiError } from '../config/api';
 import { API_URL } from '../config/env';
 import Logo from '../components/ui/Logo';
-import LiveDemo from '../components/LiveDemo';
-import ThemeToggle from '../components/ThemeToggle';
 import '../styles/login.css';
 
 const FIREBASE_ERRORS = {
   'auth/invalid-credential': 'Email or password is incorrect.',
   'auth/wrong-password': 'Email or password is incorrect.',
   'auth/user-not-found': 'No account found with that email.',
-  'auth/email-already-in-use': 'An account with this email already exists — try signing in.',
+  'auth/email-already-in-use': 'An account with this email already exists. Try signing in.',
   'auth/weak-password': 'Password should be at least 6 characters.',
   'auth/invalid-email': 'Please enter a valid email address.',
-  'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
-  'auth/network-request-failed': 'Network error — check your connection.',
-  'auth/popup-blocked': 'Your browser blocked the sign-in popup. Allow pop-ups and try again.',
-  'auth/unauthorized-domain': 'This domain is not authorised in Firebase (Authentication → Settings → Authorised domains).',
+  'auth/too-many-requests': 'Too many attempts. Please try again later.',
+  'auth/network-request-failed': 'Network error. Check your connection.',
+  'auth/popup-blocked': 'The sign-in popup was blocked. Please allow pop-ups.',
+  'auth/unauthorized-domain': 'This domain is not authorized in Firebase.',
   'auth/popup-closed-by-user': null,
   'auth/cancelled-popup-request': null,
 };
@@ -43,17 +28,6 @@ function friendlyError(err) {
   if (err?.isAxiosError) return apiError(err);
   return err?.message || 'Something went wrong.';
 }
-
-function passwordStrength(pw) {
-  let score = 0;
-  if (pw.length >= 6) score += 1;
-  if (pw.length >= 10) score += 1;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
-  if (/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score += 1;
-  return score;
-}
-
-const STRENGTH_LABEL = ['Too short', 'Weak', 'Okay', 'Good', 'Strong'];
 
 function GoogleIcon() {
   return (
@@ -106,7 +80,7 @@ export default function Login() {
     if (mode === 'reset') {
       run('email', async () => {
         await resetPassword(email);
-        toast.success('Password reset link sent — check your inbox.');
+        toast.success('Password reset email sent.');
         setMode('signin');
       });
       return;
@@ -124,302 +98,185 @@ export default function Login() {
     setError('');
   };
 
-  const onSpotlight = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty('--mx', `${event.clientX - rect.left}px`);
-    event.currentTarget.style.setProperty('--my', `${event.clientY - rect.top}px`);
-  };
-
-  const strength = passwordStrength(password);
   const headings = {
-    signin: ['Welcome back', 'Sign in to pick up where your team left off.'],
-    signup: ['Create your account', 'Start writing together in under a minute.'],
-    reset: ['Reset your password', "We'll email you a secure link."],
+    signin: 'Sign in to your account',
+    signup: 'Create an account',
+    reset: 'Reset your password',
   };
 
   return (
     <div className="auth">
-      <div className="aurora" aria-hidden="true">
-        <span className="aurora-blob aurora-blob--1" />
-        <span className="aurora-blob aurora-blob--2" />
-        <span className="aurora-blob aurora-blob--3" />
-        <span className="aurora-grid" />
-      </div>
+      <div className="auth-card card">
+        <div className="auth-brand">
+          <Logo withText size={34} />
+        </div>
 
-      <div className="auth-top">
-        <Logo withText size={36} />
-        <ThemeToggle />
-      </div>
-
-      <div className="auth-grid">
-        <section className="auth-hero">
-          <span className="eyebrow animate-fade-up">
-            <Sparkles /> Realtime collaboration, reimagined
-          </span>
-          <h1 className="display auth-title animate-fade-up" style={{ '--i': 1 }}>
-            Write together,
-            <br />
-            <em className="text-gradient">in real time.</em>
-          </h1>
-          <p className="auth-lead animate-fade-up" style={{ '--i': 2 }}>
-            Live cursors, instant sync and beautiful documents — right in your browser. No refresh, no conflicts,
-            no “final_v7_REAL.docx”.
-          </p>
-
-          <div className="animate-fade-up" style={{ '--i': 3 }}>
-            <LiveDemo />
+        {!capabilities.checked && (
+          <div className="auth-loading">
+            <span className="spinner" /> Connecting to server...
           </div>
+        )}
 
-          <ul className="auth-features animate-fade-up" style={{ '--i': 4 }}>
-            <li>
-              <MousePointer2 /> Live cursors
-            </li>
-            <li>
-              <Zap /> CRDT sync
-            </li>
-            <li>
-              <FileText /> DOCX in &amp; out
-            </li>
-            <li>
-              <Sparkles /> Templates
-            </li>
-          </ul>
-        </section>
+        {capabilities.checked && showFirebase && (
+          <>
+            <h2 className="auth-title">{headings[mode]}</h2>
 
-        <section className="auth-panel">
-          <div className="auth-card animate-fade-up" style={{ '--i': 2 }} onPointerMove={onSpotlight}>
-            {!capabilities.checked && (
-              <div className="auth-loading">
-                <span className="spinner" /> Connecting to the server…
-              </div>
+            {mode !== 'reset' && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-lg btn-block"
+                  onClick={() => run('google', signInWithGoogle)}
+                  disabled={!!busy}
+                >
+                  {busy === 'google' ? <span className="spinner" /> : <GoogleIcon />}
+                  Continue with Google
+                </button>
+                <div className="auth-divider">or</div>
+              </>
             )}
 
-            {capabilities.checked && showFirebase && (
-              <>
-                <h2 className="auth-card__title">{headings[mode][0]}</h2>
-                <p className="auth-card__sub">{headings[mode][1]}</p>
+            <form className="auth-form" onSubmit={onEmailSubmit}>
+              {mode === 'signup' && (
+                <label className="field">
+                  <span className="field-label">Name</span>
+                  <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
+                </label>
+              )}
 
-                {!capabilities.firebaseOnServer && (
-                  <div className="auth-note auth-note--warn">
-                    The API server has no Firebase Admin credentials yet, so requests will be rejected. Fill in the
-                    FIREBASE_* values in <code>Server/.env</code>.
-                  </div>
-                )}
+              <label className="field">
+                <span className="field-label">Email</span>
+                <input
+                  className="input"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                />
+              </label>
 
-                {mode !== 'reset' && (
-                  <>
+              {mode !== 'reset' && (
+                <label className="field">
+                  <span className="field-label">Password</span>
+                  <span className="input-wrap">
+                    <input
+                      className="input"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                      minLength={6}
+                      required
+                    />
                     <button
                       type="button"
-                      className="btn btn-secondary btn-lg btn-block google-btn"
-                      onClick={() => run('google', signInWithGoogle)}
-                      disabled={!!busy}
+                      className="icon-btn icon-btn-sm input-action"
+                      onClick={() => setShowPassword((s) => !s)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
-                      {busy === 'google' ? <span className="spinner" /> : <GoogleIcon />}
-                      Continue with Google
+                      {showPassword ? <EyeOff /> : <Eye />}
                     </button>
-                    <div className="auth-divider">
-                      <span>or with email</span>
-                    </div>
-                  </>
-                )}
+                  </span>
+                </label>
+              )}
 
-                <form className="auth-form" onSubmit={onEmailSubmit}>
-                  {mode === 'signup' && (
-                    <div className="input-wrap">
-                      <User />
-                      <input
-                        className="input"
-                        placeholder="Full name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        autoComplete="name"
-                        required
-                      />
-                    </div>
-                  )}
-
-                  <div className="input-wrap">
-                    <Mail />
-                    <input
-                      className="input"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
-
-                  {mode !== 'reset' && (
-                    <div className="input-wrap">
-                      <Lock />
-                      <input
-                        className="input"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                        minLength={6}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="icon-btn icon-btn-sm input-action"
-                        onClick={() => setShowPassword((s) => !s)}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff /> : <Eye />}
-                      </button>
-                    </div>
-                  )}
-
-                  {mode === 'signup' && password && (
-                    <div className="strength" data-score={strength}>
-                      <div className="strength-bars">
-                        {[1, 2, 3, 4].map((n) => (
-                          <span key={n} className={strength >= n ? 'is-on' : ''} />
-                        ))}
-                      </div>
-                      <span>{STRENGTH_LABEL[strength]}</span>
-                    </div>
-                  )}
-
-                  {mode === 'signin' && (
-                    <button type="button" className="link-btn auth-forgot" onClick={() => switchMode('reset')}>
-                      Forgot password?
-                    </button>
-                  )}
-
-                  {error && <div className="auth-error">{error}</div>}
-
-                  <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={!!busy}>
-                    {busy === 'email' && <span className="spinner" />}
-                    {mode === 'signup' ? 'Create account' : mode === 'reset' ? 'Send reset link' : 'Sign in'}
-                    {!busy && <ArrowRight />}
-                  </button>
-                </form>
-
-                <p className="auth-switch">
-                  {mode === 'signin' ? (
-                    <>
-                      New to CollabDocs?{' '}
-                      <button type="button" className="link-btn" onClick={() => switchMode('signup')}>
-                        Create an account
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      {mode === 'signup' ? 'Already have an account?' : 'Remembered it?'}{' '}
-                      <button type="button" className="link-btn" onClick={() => switchMode('signin')}>
-                        Sign in
-                      </button>
-                    </>
-                  )}
-                </p>
-
-                {capabilities.dev && (
-                  <button type="button" className="auth-alt" onClick={() => setUseDev(true)}>
-                    <Laptop /> Use a local dev account instead
-                  </button>
-                )}
-              </>
-            )}
-
-            {capabilities.checked && showDev && (
-              <>
-                <span className="badge badge-brand" style={{ marginBottom: 14 }}>
-                  <Laptop /> Local workspace
-                </span>
-                <h2 className="auth-card__title">Jump right in</h2>
-                <p className="auth-card__sub">Pick a display name — that's how collaborators will see your cursor.</p>
-
-                <form className="auth-form" onSubmit={onDevSubmit}>
-                  <div className="input-wrap">
-                    <User />
-                    <input
-                      className="input"
-                      placeholder="Your name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      autoComplete="name"
-                      autoFocus
-                      required
-                      minLength={2}
-                    />
-                  </div>
-                  <div className="input-wrap">
-                    <Mail />
-                    <input
-                      className="input"
-                      type="email"
-                      placeholder="Email (optional)"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                    />
-                  </div>
-
-                  {error && <div className="auth-error">{error}</div>}
-
-                  <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={!!busy}>
-                    {busy === 'dev' && <span className="spinner" />}
-                    Enter workspace
-                    {!busy && <ArrowRight />}
-                  </button>
-                </form>
-
-                <div className="auth-note">
-                  {capabilities.firebase ? (
-                    <button type="button" className="link-btn" onClick={() => setUseDev(false)}>
-                      ← Back to Google / email sign-in
-                    </button>
-                  ) : (
-                    <>
-                      <strong>Dev mode.</strong> Firebase keys aren't set, so you're using a local account. Add them to{' '}
-                      <code>Client/.env</code> to enable Google sign-in.
-                    </>
-                  )}
-                </div>
-                <p className="auth-tip">
-                  💡 Tip: open the same document in another browser with a different name to watch live cursors.
-                </p>
-              </>
-            )}
-
-            {capabilities.checked && !showFirebase && !showDev && (
-              <div className="auth-empty">
-                <div className="modal-icon danger">
-                  <ServerCrash />
-                </div>
-                <h2 className="auth-card__title">
-                  {capabilities.serverReachable ? 'No sign-in method configured' : "Can't reach the server"}
-                </h2>
-                <p className="auth-card__sub">
-                  {capabilities.serverReachable ? (
-                    <>
-                      Add Firebase keys to <code>Client/.env</code> and <code>Server/.env</code>, or set{' '}
-                      <code>DEV_AUTH=true</code> in <code>Server/.env</code> for local development.
-                    </>
-                  ) : (
-                    <>
-                      The API at <code>{API_URL}</code> isn't responding. Start it with <code>npm run dev</code> in the{' '}
-                      <code>Server</code> folder, then refresh.
-                    </>
-                  )}
-                </p>
-                <button type="button" className="btn btn-secondary" onClick={() => window.location.reload()}>
-                  Try again
+              {mode === 'signin' && (
+                <button type="button" className="link-btn auth-forgot" onClick={() => switchMode('reset')}>
+                  Forgot password?
                 </button>
-              </div>
-            )}
-          </div>
+              )}
 
-          <p className="auth-legal">
-            {showFirebase ? 'Secured by Firebase Auth · ' : ''}Realtime sync powered by Yjs CRDTs
-          </p>
-        </section>
+              {error && <div className="auth-error">{error}</div>}
+
+              <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={!!busy}>
+                {busy === 'email' && <span className="spinner" />}
+                {mode === 'signup' ? 'Sign up' : mode === 'reset' ? 'Send reset link' : 'Sign in'}
+              </button>
+            </form>
+
+            <p className="auth-switch">
+              {mode === 'signin' ? (
+                <>
+                  Don't have an account?{' '}
+                  <button type="button" className="link-btn" onClick={() => switchMode('signup')}>
+                    Sign up
+                  </button>
+                </>
+              ) : (
+                <>
+                  {mode === 'signup' ? 'Already have an account?' : 'Remembered it?'}{' '}
+                  <button type="button" className="link-btn" onClick={() => switchMode('signin')}>
+                    Sign in
+                  </button>
+                </>
+              )}
+            </p>
+
+            {capabilities.dev && (
+              <p className="auth-switch">
+                <button type="button" className="link-btn" onClick={() => setUseDev(true)}>
+                  Use local dev login
+                </button>
+              </p>
+            )}
+          </>
+        )}
+
+        {capabilities.checked && showDev && (
+          <>
+            <h2 className="auth-title">Local dev login</h2>
+            <p className="auth-sub">Enter a name to continue. This is only available in development.</p>
+
+            <form className="auth-form" onSubmit={onDevSubmit}>
+              <label className="field">
+                <span className="field-label">Name</span>
+                <input
+                  className="input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                  autoFocus
+                  required
+                  minLength={2}
+                />
+              </label>
+              <label className="field">
+                <span className="field-label">Email (optional)</span>
+                <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+              </label>
+
+              {error && <div className="auth-error">{error}</div>}
+
+              <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={!!busy}>
+                {busy === 'dev' && <span className="spinner" />}
+                Continue
+              </button>
+            </form>
+
+            {capabilities.firebase && (
+              <p className="auth-switch">
+                <button type="button" className="link-btn" onClick={() => setUseDev(false)}>
+                  Back to normal sign in
+                </button>
+              </p>
+            )}
+          </>
+        )}
+
+        {capabilities.checked && !showFirebase && !showDev && (
+          <>
+            <h2 className="auth-title">{capabilities.serverReachable ? 'Sign in is not configured' : 'Cannot reach the server'}</h2>
+            <p className="auth-sub">
+              {capabilities.serverReachable
+                ? 'Add the Firebase settings to the .env files and restart.'
+                : `The API at ${API_URL} is not responding. Please try again in a moment.`}
+            </p>
+            <button type="button" className="btn btn-secondary btn-block" onClick={() => window.location.reload()}>
+              Try again
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

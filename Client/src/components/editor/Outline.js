@@ -17,14 +17,16 @@ export default function Outline({ editor, onClose }) {
 
   useEffect(() => {
     let frame = 0;
-    const update = () => {
+    // 'transaction' also catches content set programmatically (templates, imports, remote sync).
+    const update = ({ transaction }) => {
+      if (!transaction.docChanged) return;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => setHeadings(collectHeadings(editor)));
     };
-    editor.on('update', update);
+    editor.on('transaction', update);
     return () => {
       cancelAnimationFrame(frame);
-      editor.off('update', update);
+      editor.off('transaction', update);
     };
   }, [editor]);
 

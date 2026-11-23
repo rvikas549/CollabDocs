@@ -1,6 +1,6 @@
 {
   "short_name": "CollabDocs",
-  "name": "CollabDocs — realtime collaborative documents",
+  "name": "CollabDocs",
   "icons": [
     {
       "src": "favicon.svg",
@@ -10,6 +10,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#6d5efc",
-  "background_color": "#f5f4fa"
+  "theme_color": "#2f80ed",
+  "background_color": "#f3f7fc"
 }

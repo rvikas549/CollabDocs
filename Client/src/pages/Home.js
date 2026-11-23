@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowUpDown,
   Check,
-  Clock,
   Copy,
   ExternalLink,
+  FileText,
   LayoutGrid,
   Link2,
   Pencil,
@@ -15,7 +15,6 @@ import {
   Star,
   Trash2,
   UserMinus,
-  Users,
   Ellipsis,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -24,13 +23,12 @@ import { useCommands, usePalette } from '../components/CommandPalette';
 import { docsApi, docUrl } from '../lib/docsApi';
 import { apiError } from '../config/api';
 import { TEMPLATES } from '../lib/templates';
-import { colorFor, copyText, firstName, formatNumber, greeting, modKey, readStorage, timeAgo, writeStorage } from '../lib/utils';
+import { copyText, firstName, formatNumber, modKey, readStorage, timeAgo, writeStorage } from '../lib/utils';
 import Logo from '../components/ui/Logo';
 import Dropdown from '../components/ui/Dropdown';
-import { Avatar, AvatarStack } from '../components/ui/Avatar';
+import { Avatar } from '../components/ui/Avatar';
 import { ConfirmDialog, PromptDialog } from '../components/ui/Modal';
 import ProfileMenu from '../components/ProfileMenu';
-import ThemeToggle from '../components/ThemeToggle';
 import ShortcutsModal from '../components/ShortcutsModal';
 import '../styles/home.css';
 
@@ -57,12 +55,6 @@ function editedLabel(doc, uid) {
   const by = doc.lastEditedBy?.uid && doc.lastEditedBy.uid !== uid ? ` by ${firstName(doc.lastEditedBy.name)}` : '';
   return `Edited ${timeAgo(doc.updatedAt)}${by}`;
 }
-
-const spotlight = (event) => {
-  const rect = event.currentTarget.getBoundingClientRect();
-  event.currentTarget.style.setProperty('--mx', `${event.clientX - rect.left}px`);
-  event.currentTarget.style.setProperty('--my', `${event.clientY - rect.top}px`);
-};
 
 export default function Home() {
   const { user } = useAuth();
@@ -175,7 +167,7 @@ export default function Home() {
     },
     copyLink: async (doc) => {
       await copyText(docUrl(doc.id));
-      toast.success('Link copied — anyone with it can join after signing in');
+      toast.success('Link copied');
     },
     rename: (doc) => setDialog({ type: 'rename', doc }),
     remove: (doc) => setDialog({ type: doc.isOwner ? 'delete' : 'leave', doc }),
@@ -206,25 +198,23 @@ export default function Home() {
   useCommands('home', paletteCommands);
 
   const emptyCopy = {
-    all: ['Your workspace is a blank canvas', 'Create your first document or start from a template above.'],
-    owned: ["You haven't created anything yet", 'Hit “New” or pick a template to get going.'],
-    shared: ['Nothing shared with you yet', 'When a teammate sends you a doc link, it shows up here automatically.'],
-    starred: ['No starred documents', 'Star the docs you open most and they’ll live here.'],
+    all: ['No documents yet', 'Create a new document to get started.'],
+    owned: ["You haven't created any documents", 'Create a new document to get started.'],
+    shared: ['Nothing shared with you yet', 'Documents shared with you will appear here.'],
+    starred: ['No starred documents', 'Star a document to see it here.'],
   };
 
   return (
     <div className="home">
-      <div className="home-glow" aria-hidden="true" />
-
-      <header className="app-header glass">
+      <header className="app-header">
         <div className="app-header__inner">
           <Link to="/" className="logo-link" aria-label="CollabDocs home">
-            <Logo withText subtitle="Realtime workspace" />
+            <Logo withText />
           </Link>
 
           <button type="button" className="search-trigger" onClick={openPalette} aria-label="Search">
             <Search />
-            <span>Search or jump to…</span>
+            <span>Search documents...</span>
             <span className="kbd-group">
               <kbd>{modKey}</kbd>
               <kbd>K</kbd>
@@ -232,10 +222,9 @@ export default function Home() {
           </button>
 
           <div className="header-actions">
-            <ThemeToggle />
             <button type="button" className="btn btn-primary hide-sm" onClick={() => createDoc()} disabled={!!creating}>
               {creating === 'blank' ? <span className="spinner" /> : <Plus />}
-              New
+              New document
             </button>
             <ProfileMenu onShowShortcuts={() => setShowShortcuts(true)} />
           </div>
@@ -243,80 +232,37 @@ export default function Home() {
       </header>
 
       <main className="home-main">
-        <section className="home-hero">
-          <h1 className="display home-greeting animate-fade-up">
-            {greeting()}, <em className="text-gradient">{firstName(user.displayName)}</em>
-          </h1>
-          <p className="home-stats animate-fade-up" style={{ '--i': 1 }}>
-            {docs ? (
-              <>
-                <span>
-                  <b>{counts.all}</b> {counts.all === 1 ? 'document' : 'documents'}
-                </span>
-                <span>
-                  <b>{counts.shared}</b> shared with you
-                </span>
-                <span>
-                  <b>{formatNumber(counts.words)}</b> words written
-                </span>
-              </>
-            ) : (
-              <span>Warming up your workspace…</span>
-            )}
-          </p>
-        </section>
-
         <section className="home-section">
-          <div className="section-head">
-            <h2>Start something new</h2>
-            <span className="muted">Blank page or a head start</span>
-          </div>
+          <h2 className="section-title">Start a new document</h2>
 
           <div className="templates">
-            <button
-              type="button"
-              className="template template--blank animate-fade-up"
-              onClick={() => createDoc()}
-              disabled={!!creating}
-              onPointerMove={spotlight}
-            >
-              <div className="template__art">
+            <button type="button" className="template" onClick={() => createDoc()} disabled={!!creating}>
+              <div className="template__thumb template__thumb--blank">
                 {creating === 'blank' ? <span className="spinner" /> : <Plus />}
               </div>
-              <div className="template__name">Blank document</div>
-              <div className="template__desc">Start from scratch</div>
+              <div className="template__name">Blank</div>
             </button>
 
-            {TEMPLATES.map((template, index) => (
+            {TEMPLATES.map((template) => (
               <button
                 type="button"
                 key={template.id}
-                className="template animate-fade-up"
-                style={{ '--accent': template.accent, '--i': index + 1 }}
+                className="template"
                 onClick={() => createDoc(template)}
                 disabled={!!creating}
-                onPointerMove={spotlight}
+                title={template.description}
               >
-                <div className="template__art">
-                  <span className="template__emoji">{template.icon}</span>
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                  {creating === template.id && (
-                    <span className="template__busy">
-                      <span className="spinner" />
-                    </span>
-                  )}
+                <div className="template__thumb">
+                  {creating === template.id ? <span className="spinner" /> : <FileText />}
                 </div>
                 <div className="template__name">{template.name}</div>
-                <div className="template__desc">{template.description}</div>
               </button>
             ))}
           </div>
         </section>
 
         <section className="home-section">
+          <h2 className="section-title">My documents</h2>
           <div className="docs-toolbar">
             <div className="tabs" role="tablist" aria-label="Filter documents">
               {SCOPES.map((s) => (
@@ -340,7 +286,7 @@ export default function Home() {
                 <Search />
                 <input
                   className="input"
-                  placeholder="Filter documents…"
+                  placeholder="Filter by title..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   aria-label="Filter documents"
@@ -410,12 +356,7 @@ export default function Home() {
           {docs === null ? (
             <DocsSkeleton view={view} />
           ) : visible.length === 0 ? (
-            <div className="empty animate-fade-up">
-              <div className="empty-art" aria-hidden="true">
-                <span>📄</span>
-                <span>✨</span>
-                <span>📝</span>
-              </div>
+            <div className="empty">
               <h3>{query ? `Nothing matches “${query}”` : emptyCopy[scope][0]}</h3>
               <p>{query ? 'Try a different word, or clear the filter.' : emptyCopy[scope][1]}</p>
               {query ? (
@@ -432,8 +373,8 @@ export default function Home() {
             </div>
           ) : view === 'grid' ? (
             <div className="doc-grid">
-              {visible.map((doc, index) => (
-                <DocCard key={doc.id} doc={doc} index={index} uid={user.uid} actions={actions} />
+              {visible.map((doc) => (
+                <DocCard key={doc.id} doc={doc} uid={user.uid} actions={actions} />
               ))}
             </div>
           ) : (
@@ -445,8 +386,8 @@ export default function Home() {
                 <span className="hide-sm">Words</span>
                 <span />
               </div>
-              {visible.map((doc, index) => (
-                <DocRow key={doc.id} doc={doc} index={index} uid={user.uid} actions={actions} />
+              {visible.map((doc) => (
+                <DocRow key={doc.id} doc={doc} uid={user.uid} actions={actions} />
               ))}
             </div>
           )}
@@ -563,21 +504,16 @@ function DocMenu({ doc, actions }) {
   );
 }
 
-function DocCard({ doc, index, uid, actions }) {
+function DocCard({ doc, uid, actions }) {
   return (
     <article
-      className="doc-card animate-fade-up"
-      style={{ '--i': Math.min(index, 12), '--accent': colorFor(doc.id) }}
+      className="doc-card"
       tabIndex={0}
       onClick={() => actions.open(doc)}
       onKeyDown={(e) => e.key === 'Enter' && actions.open(doc)}
-      onPointerMove={spotlight}
     >
-      <div className="doc-card__paper">
-        <span className="doc-card__icon">{doc.icon || '📄'}</span>
-        <p className={`doc-card__preview ${doc.preview ? '' : 'is-empty'}`}>
-          {doc.preview || 'Empty document — click to start writing'}
-        </p>
+      <div className="doc-card__thumb">
+        <p className={doc.preview ? '' : 'is-empty'}>{doc.preview || 'Empty document'}</p>
         <button
           type="button"
           className={`doc-card__star ${doc.starred ? 'is-on' : ''}`}
@@ -586,25 +522,20 @@ function DocCard({ doc, index, uid, actions }) {
             actions.star(doc);
           }}
           aria-label={doc.starred ? 'Unstar' : 'Star'}
+          title={doc.starred ? 'Unstar' : 'Star'}
         >
           <Star />
         </button>
       </div>
 
       <div className="doc-card__body">
-        <h3 className="doc-card__title" title={doc.title}>
-          {doc.title || 'Untitled document'}
-        </h3>
-        <div className="doc-card__meta">
-          <Clock /> {editedLabel(doc, uid)}
+        <div className="doc-card__title" title={doc.title}>
+          <span className="doc-card__icon">{doc.icon || '📄'}</span>
+          <span>{doc.title || 'Untitled document'}</span>
         </div>
         <div className="doc-card__foot">
-          <AvatarStack people={doc.members || []} max={3} size={24} />
-          {!doc.isOwner && (
-            <span className="badge">
-              <Users /> Shared
-            </span>
-          )}
+          <span className="doc-card__meta">{editedLabel(doc, uid)}</span>
+          {!doc.isOwner && <span className="badge">Shared</span>}
           <DocMenu doc={doc} actions={actions} />
         </div>
       </div>
@@ -612,11 +543,10 @@ function DocCard({ doc, index, uid, actions }) {
   );
 }
 
-function DocRow({ doc, index, uid, actions }) {
+function DocRow({ doc, uid, actions }) {
   return (
     <div
-      className="doc-row animate-fade-up"
-      style={{ '--i': Math.min(index, 12) }}
+      className="doc-row"
       tabIndex={0}
       role="button"
       onClick={() => actions.open(doc)}
@@ -624,17 +554,14 @@ function DocRow({ doc, index, uid, actions }) {
     >
       <span className="doc-row__name">
         <span className="doc-row__icon">{doc.icon || '📄'}</span>
-        <span style={{ minWidth: 0 }}>
-          <span className="doc-row__title">
-            {doc.title || 'Untitled document'}
-            {doc.starred && <Star className="doc-row__star" />}
-          </span>
-          <span className="doc-row__preview">{doc.preview || 'Empty document'}</span>
+        <span className="doc-row__title">
+          {doc.title || 'Untitled document'}
+          {doc.starred && <Star className="doc-row__star" />}
         </span>
       </span>
       <span className="doc-row__owner hide-sm">
         <Avatar name={doc.owner?.name} src={doc.owner?.picture} seed={doc.owner?.uid} size={22} />
-        {doc.isOwner ? 'You' : firstName(doc.owner?.name)}
+        {doc.isOwner ? 'Me' : firstName(doc.owner?.name)}
       </span>
       <span className="muted hide-sm">{editedLabel(doc, uid).replace('Edited ', '')}</span>
       <span className="muted hide-sm">{formatNumber(doc.wordCount)}</span>
@@ -661,7 +588,7 @@ function DocsSkeleton({ view }) {
     <div className="doc-grid">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="doc-card doc-card--skeleton">
-          <div className="skeleton" style={{ height: 150, borderRadius: '16px 16px 0 0' }} />
+          <div className="skeleton" style={{ height: 120, borderRadius: 0 }} />
           <div style={{ padding: 16 }}>
             <div className="skeleton" style={{ height: 16, width: '70%', marginBottom: 10 }} />
             <div className="skeleton" style={{ height: 12, width: '45%' }} />

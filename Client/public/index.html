@@ -5,31 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f5f4fa" />
+    <meta name="theme-color" content="#2f80ed" />
     <meta
       name="description"
-      content="CollabDocs — write together in real time. Live cursors, instant sync, templates and DOCX import/export."
+      content="CollabDocs - a realtime collaborative document editor."
     />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
-    />
-
-    <!-- Apply the saved theme before first paint to avoid a flash. -->
-    <script>
-      (function () {
-        try {
-          var pref = localStorage.getItem('collabdocs.theme') || 'system';
-          var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-        } catch (e) {}
-      })();
-    </script>
-
     <title>CollabDocs</title>
   </head>
   <body>

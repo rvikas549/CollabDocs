@@ -31,7 +31,7 @@ export default function ShareModal({ docId, title, owner, members = [], peers = 
 
   return (
     <Modal onClose={onClose} label="Share document">
-      <ModalHeader icon={Share2} title={`Share “${title || 'Untitled document'}”`} subtitle="Invite people by sending them the link." onClose={onClose} />
+      <ModalHeader icon={Share2} title={`Share “${title || 'Untitled document'}”`} subtitle="Send this link to people you want to edit with." onClose={onClose} />
 
       <div className="modal-body">
         <div className="share-link">

@@ -72,7 +72,7 @@ export const TEMPLATES = [
         h(2, 'Non-goals'),
         ul("What we're intentionally not doing"),
         h(2, 'Milestones'),
-        todo('Kick-off & alignment', 'First prototype', 'Beta with real users', 'Launch 🎉'),
+        todo('Kick-off', 'First prototype', 'Beta testing', 'Launch'),
         h(2, 'Risks & open questions'),
         ul('What could go wrong?', 'What do we still need to learn?')
       ),
@@ -99,7 +99,7 @@ export const TEMPLATES = [
         h(3, 'Thursday'),
         todo(''),
         h(3, 'Friday'),
-        todo('Weekly review ✨'),
+        todo('Weekly review'),
         h(2, 'Notes & wins'),
         p()
       ),

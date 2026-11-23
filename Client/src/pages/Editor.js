@@ -16,7 +16,7 @@ const TOKEN_REFRESH_MS = 4 * 60 * 1000;
 function EditorSkeleton() {
   return (
     <div className="workspace">
-      <div className="ed-topbar glass">
+      <div className="ed-topbar">
         <div className="ed-topbar__left">
           <div className="skeleton" style={{ width: 30, height: 30, borderRadius: 9 }} />
           <div className="skeleton" style={{ width: 220, height: 22 }} />
@@ -106,13 +106,13 @@ export default function Editor() {
   }, [readyId, getToken]);
 
   if (load.status === 'not-found') {
-    return <NotFound emoji="🔍" title="Document not found" message="It may have been deleted, or the link might be mistyped." />;
+    return <NotFound title="Document not found" message="It may have been deleted, or the link is wrong." />;
   }
   if (load.status === 'forbidden') {
-    return <NotFound emoji="🔒" title="No access" message="You don't have access to this document. Ask the owner to share the link again." />;
+    return <NotFound title="No access" message="You don't have access to this document." />;
   }
   if (load.status === 'error') {
-    return <NotFound emoji="⚡" title="Couldn't open document" message={load.error} />;
+    return <NotFound title="Couldn't open document" message={load.error} />;
   }
   if (load.status !== 'ready' || !session || session.id !== load.doc.id) {
     return <EditorSkeleton />;

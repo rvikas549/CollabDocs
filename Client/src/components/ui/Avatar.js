@@ -11,7 +11,7 @@ export function Avatar({ name, src, seed, size = 32, color, ring, title, classNa
       title={title ?? name}
       style={{
         '--size': `${size}px`,
-        '--avatar-bg': `linear-gradient(135deg, ${base}, ${base}b3)`,
+        '--avatar-bg': base,
         ...(ring ? { '--ring-color': ring } : {}),
       }}
     >

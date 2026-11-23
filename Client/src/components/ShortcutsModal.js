@@ -6,9 +6,9 @@ const GROUPS = [
   {
     title: 'General',
     items: [
-      [[modKey, 'K'], 'Command palette & search'],
+      [[modKey, 'K'], 'Search documents and commands'],
       [[modKey, '/'], 'Show keyboard shortcuts'],
-      [[modKey, 'S'], 'Save (it autosaves anyway ✨)'],
+      [[modKey, 'S'], 'Save'],
       [[modKey, 'P'], 'Export as PDF'],
     ],
   },
@@ -52,7 +52,7 @@ const GROUPS = [
 export default function ShortcutsModal({ onClose }) {
   return (
     <Modal onClose={onClose} size="lg" label="Keyboard shortcuts">
-      <ModalHeader icon={Keyboard} title="Keyboard shortcuts" subtitle="Fly through your docs without touching the mouse." onClose={onClose} />
+      <ModalHeader icon={Keyboard} title="Keyboard shortcuts" onClose={onClose} />
       <div className="modal-body shortcuts">
         {GROUPS.map((group) => (
           <div key={group.title} className="shortcuts-group">

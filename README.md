@@ -59,7 +59,7 @@ Built with realtime synchronization using the Yjs CRDT architecture.
 - ⭐ Star, rename, duplicate, delete (owner only), leave shared docs
 - 🔎 Filter tabs (all / owned / shared / starred), sort, grid & list views
 - ⌘K **command palette** — search docs and run any action
-- 🌗 Light / dark / system theme
+- 🎨 Simple light blue theme
 - 📱 Responsive down to phone size
 
 ### Import / export
@@ -337,7 +337,7 @@ Cloud Deployment      ✅
 # 💜 Phase 2 Completed
 
 ```txt
-New design system (light + dark)          ✅
+Simple light blue UI                      ✅
 Live cursor presence + avatars            ✅
 Templates                                 ✅
 Slash commands + floating toolbar         ✅

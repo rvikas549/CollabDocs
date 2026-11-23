@@ -61,21 +61,21 @@ function SaveStatus({ save, status }) {
   if (status === 'offline' || status === 'disconnected') {
     return (
       <span className="save-status is-offline">
-        <CloudOff /> Offline — edits sync when you reconnect
+        <CloudOff /> Offline
       </span>
     );
   }
   if (save.state === 'error') {
     return (
       <span className="save-status is-error" title={save.message}>
-        <CircleAlert /> Snapshot not saved — will retry
+        <CircleAlert /> Not saved, retrying
       </span>
     );
   }
   if (save.state === 'pending' || save.state === 'saving') {
     return (
       <span className="save-status is-saving">
-        <span className="spinner" /> Saving…
+        <span className="spinner" /> Saving...
       </span>
     );
   }
@@ -88,7 +88,7 @@ function SaveStatus({ save, status }) {
 
 function ConnectionPill({ status, synced, count }) {
   const live = status === 'connected' && synced;
-  const label = live ? (count ? `${count + 1} editing` : 'Live') : status === 'offline' ? 'Offline' : 'Connecting…';
+  const label = live ? (count ? `${count + 1} editing` : 'Live') : status === 'offline' ? 'Offline' : 'Connecting...';
   const tone = live ? 'is-live' : status === 'offline' ? 'is-offline' : 'is-connecting';
 
   return (
@@ -400,7 +400,7 @@ export default function DocumentWorkspace({ doc, ydoc, provider }) {
       if (mod && key === 's') {
         event.preventDefault();
         latest.current.flushContent();
-        toast.success('All changes are saved automatically ✨');
+        toast.success('Saved');
       } else if (mod && event.key === '/') {
         event.preventDefault();
         setModal((m) => (m === 'shortcuts' ? null : 'shortcuts'));
@@ -493,7 +493,7 @@ export default function DocumentWorkspace({ doc, ydoc, provider }) {
 
   return (
     <div className={`workspace ${focusMode ? 'is-focus' : ''} ${outlineOpen ? 'has-outline' : ''}`}>
-      <header className="ed-topbar glass">
+      <header className="ed-topbar">
         <div className="ed-topbar__left">
           <button type="button" className="ed-home" onClick={() => navigate('/')} aria-label="Back to documents" data-tip="All documents">
             <Logo size={30} />
@@ -577,7 +577,7 @@ export default function DocumentWorkspace({ doc, ydoc, provider }) {
         </main>
       </div>
 
-      <div className="ed-status glass">
+      <div className="ed-status">
         <span>
           <b>{formatNumber(words)}</b> words
         </span>
@@ -588,7 +588,7 @@ export default function DocumentWorkspace({ doc, ydoc, provider }) {
       </div>
 
       {focusMode && (
-        <button type="button" className="focus-exit glass" onClick={() => setFocusMode(false)}>
+        <button type="button" className="focus-exit" onClick={() => setFocusMode(false)}>
           <Minimize2 /> Exit focus <kbd>esc</kbd>
         </button>
       )}

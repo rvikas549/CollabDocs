@@ -131,7 +131,7 @@ export default function Toolbar({ editor, onLink, onImport, onExport, outlineOpe
 
   return (
     <div className="toolbar-wrap">
-      <div className="toolbar glass" role="toolbar" aria-label="Formatting">
+      <div className="toolbar" role="toolbar" aria-label="Formatting">
         <div className="tb-group">
           <Btn icon={Undo2} label="Undo" shortcut={`${modKey}Z`} disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()} />
           <Btn icon={Redo2} label="Redo" shortcut={`${modKey}⇧Z`} disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()} />
