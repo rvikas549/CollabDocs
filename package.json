@@ -1,0 +1,15 @@
+{
+  "name": "collabdocs",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Realtime collaborative document editor (MERN + Yjs + Firebase)",
+  "scripts": {
+    "install:all": "npm install && npm --prefix Server install && npm --prefix Client install",
+    "dev": "concurrently -k -n api,yjs,web -c cyan,magenta,green \"npm --prefix Server run dev\" \"npm --prefix Server run dev:yjs\" \"npm --prefix Client start\"",
+    "dev:server": "concurrently -k -n api,yjs -c cyan,magenta \"npm --prefix Server run dev\" \"npm --prefix Server run dev:yjs\"",
+    "build": "npm --prefix Client run build"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7"
+  }
+}

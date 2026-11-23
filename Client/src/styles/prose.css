@@ -1,0 +1,306 @@
+/* Document typography — what you actually write in. */
+
+.prose {
+  min-height: 60vh;
+  outline: none;
+  color: var(--paper-text);
+  font-family: var(--font-sans);
+  font-size: 16.5px;
+  line-height: 1.75;
+  word-wrap: break-word;
+  caret-color: var(--brand);
+}
+
+.prose > * + * {
+  margin-top: 0.75em;
+}
+
+.prose p {
+  margin: 0;
+}
+
+.prose > p + p {
+  margin-top: 0.6em;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  color: var(--paper-text);
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  scroll-margin-top: 150px;
+}
+
+.prose h1 {
+  margin: 1.4em 0 0.5em;
+  font-size: 2.15em;
+  font-weight: 800;
+}
+
+.prose h2 {
+  margin: 1.5em 0 0.45em;
+  font-size: 1.55em;
+  font-weight: 750;
+}
+
+.prose h3 {
+  margin: 1.3em 0 0.35em;
+  font-size: 1.22em;
+  font-weight: 700;
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose strong {
+  font-weight: 700;
+}
+
+.prose a {
+  color: var(--brand);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--brand) 40%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: text-decoration-color 0.2s;
+}
+
+.prose a:hover {
+  text-decoration-color: var(--brand);
+}
+
+.prose mark {
+  /* default for marks without a colour; coloured highlights set it inline */
+  background-color: #fef08a;
+  padding: 0.05em 0.15em;
+  border-radius: 4px;
+  /* TipTap sets an inline color: inherit — keep text dark on pastel highlights in dark mode. */
+  color: #1d1b2e !important;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.prose code {
+  padding: 0.15em 0.4em;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--pink);
+  font-size: 0.86em;
+}
+
+.prose pre {
+  margin: 1.1em 0;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: #16142a;
+  color: #e9e7f5;
+  font-size: 0.88em;
+  line-height: 1.65;
+  overflow-x: auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] .prose pre {
+  background: #0c0b14;
+}
+
+.prose pre code {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+}
+
+.prose blockquote {
+  margin: 1.1em 0;
+  padding: 4px 0 4px 20px;
+  border-left: 3px solid transparent;
+  border-image: var(--grad-brand) 1;
+  color: var(--paper-muted);
+  font-family: var(--font-display);
+  font-size: 1.22em;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+.prose hr {
+  height: 1px;
+  margin: 2em 0;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+}
+
+.prose hr.ProseMirror-selectednode {
+  background: var(--brand);
+}
+
+/* lists */
+
+.prose ul,
+.prose ol {
+  margin: 0.6em 0;
+  padding-left: 1.5em;
+}
+
+.prose li + li {
+  margin-top: 0.2em;
+}
+
+.prose li::marker {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.prose ul[data-type='taskList'] {
+  padding-left: 0.15em;
+  list-style: none;
+}
+
+.prose ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.prose ul[data-type='taskList'] li > label {
+  flex: none;
+  margin-top: 0.32em;
+  user-select: none;
+}
+
+.prose ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+  transition: color 0.25s, opacity 0.25s;
+}
+
+.prose ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: var(--paper-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.prose ul[data-type='taskList'] input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.25s var(--spring);
+}
+
+.prose ul[data-type='taskList'] input[type='checkbox']:hover {
+  border-color: var(--brand);
+}
+
+.prose ul[data-type='taskList'] input[type='checkbox']:checked {
+  border-color: transparent;
+  background: var(--grad-brand)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")
+    center / 12px no-repeat;
+  transform: scale(1.05);
+}
+
+/* placeholders */
+
+.prose p.is-editor-empty:first-child::before,
+.prose .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--faint);
+  pointer-events: none;
+}
+
+/* selection + gap cursor */
+
+.prose ::selection {
+  background: color-mix(in srgb, var(--brand) 26%, transparent);
+}
+
+.prose .ProseMirror-gapcursor::after {
+  border-top-color: var(--brand);
+}
+
+.prose img {
+  max-width: 100%;
+  border-radius: 10px;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prose td,
+.prose th {
+  padding: 6px 10px;
+  border: 1px solid var(--paper-border);
+}
+
+/* ─── live collaborator cursors ────────────────────── */
+
+.collaboration-cursor__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid;
+  border-right: 0;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  left: -2px;
+  bottom: 100%;
+  padding: 1px 7px 2px;
+  border-radius: 6px 6px 6px 0;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  user-select: none;
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.35);
+  transform-origin: bottom left;
+  animation: cursor-label-in 0.3s var(--spring);
+}
+
+.collaboration-cursor__caret.is-flashing .collaboration-cursor__label {
+  animation: cursor-flash 1.2s var(--spring);
+}
+
+@keyframes cursor-label-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes cursor-flash {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(1.5);
+  }
+  40% {
+    transform: scale(1);
+  }
+  60% {
+    transform: scale(1.3);
+  }
+}

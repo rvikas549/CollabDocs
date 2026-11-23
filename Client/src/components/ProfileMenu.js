@@ -1,138 +1,89 @@
-import { useState, useRef, useEffect } from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
-export default function ProfileMenu({
-  user,
-}) {
-  const [open, setOpen] = useState(false);
+import { Keyboard, LogOut, Monitor, Moon, Sun } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
+import { Avatar } from './ui/Avatar';
+import Dropdown from './ui/Dropdown';
 
-  const menuRef = useRef();
+const THEMES = [
+  { id: 'light', label: 'Light', icon: Sun },
+  { id: 'dark', label: 'Dark', icon: Moon },
+  { id: 'system', label: 'Auto', icon: Monitor },
+];
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target)
-      ) {
-        setOpen(false);
-      }
-    };
+export default function ProfileMenu({ onShowShortcuts }) {
+  const { user, signOut } = useAuth();
+  const { preference, setPreference } = useTheme();
+  const toast = useToast();
 
-    document.addEventListener(
-      'mousedown',
-      handleClickOutside
-    );
+  if (!user) return null;
 
-    return () => {
-      document.removeEventListener(
-        'mousedown',
-        handleClickOutside
-      );
-    };
-  }, []);
-
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await signOut();
     } catch (err) {
-      console.error(err);
+      toast.error(err.message);
     }
   };
 
   return (
-    <div
-      ref={menuRef}
-      style={{
-        position: 'relative',
-        justifyContent: 'flex-end'
-      }}
+    <Dropdown
+      width={270}
+      trigger={({ toggle, open }) => (
+        <button type="button" className={`profile-trigger ${open ? 'is-open' : ''}`} onClick={toggle} aria-label="Account menu">
+          <Avatar name={user.displayName} src={user.photoURL} seed={user.uid} size={34} />
+        </button>
+      )}
     >
-      {/* Avatar */}
-      <img
-        src={user?.photoURL}
-        alt="profile"
-        onClick={() => setOpen(!open)}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: '50%',
-          cursor: 'pointer',
-          objectFit: 'cover',
-          border: '2px solid #e0e0e0',
-        }}
-      />
-
-      {/* Dropdown */}
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 50,
-            width: 240,
-            background: '#fff',
-            borderRadius: 14,
-            boxShadow:
-              '0 10px 30px rgba(0,0,0,0.12)',
-            overflow: 'hidden',
-            zIndex: 999,
-          }}
-        >
-          {/* User Info */}
-          <div
-            style={{
-              padding: 18,
-              borderBottom:
-                '1px solid #f0f0f0',
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 600,
-                color: '#202124',
-                marginBottom: 4,
-              }}
-            >
-              {user?.displayName}
-            </div>
-
-            <div
-              style={{
-                fontSize: 13,
-                color: '#666',
-              }}
-            >
-              {user?.email}
+      {({ close }) => (
+        <>
+          <div className="profile-head">
+            <Avatar name={user.displayName} src={user.photoURL} seed={user.uid} size={42} />
+            <div style={{ minWidth: 0 }}>
+              <div className="profile-name">{user.displayName}</div>
+              <div className="profile-email">{user.email}</div>
+              <span className="badge" style={{ marginTop: 6 }}>
+                {user.provider === 'dev' ? 'Local dev account' : 'Firebase account'}
+              </span>
             </div>
           </div>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: '14px 18px',
-              border: 'none',
-              background: 'white',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontSize: 14,
-              color: '#d93025',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background =
-                '#f8f9fa';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background =
-                'white';
-            }}
-          >
-            Logout
+          <div className="menu-sep" />
+          <div className="menu-label">Appearance</div>
+          <div className="segmented" role="radiogroup" aria-label="Theme">
+            {THEMES.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={preference === id}
+                className={preference === id ? 'is-active' : ''}
+                onClick={() => setPreference(id)}
+              >
+                <Icon />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="menu-sep" />
+          {onShowShortcuts && (
+            <button
+              type="button"
+              className="menu-item"
+              onClick={() => {
+                close();
+                onShowShortcuts();
+              }}
+            >
+              <Keyboard /> Keyboard shortcuts
+            </button>
+          )}
+          <button type="button" className="menu-item danger" onClick={handleSignOut}>
+            <LogOut /> Sign out
           </button>
-        </div>
+        </>
       )}
-    </div>
+    </Dropdown>
   );
 }

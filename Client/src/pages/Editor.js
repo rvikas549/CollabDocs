@@ -1,535 +1,122 @@
-import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
 import { useAuth } from '../context/AuthContext';
-import { io } from 'socket.io-client';
-import axios from 'axios';
-import CollaborativeEditor from '../components/CollaborativeEditor';
-import ProfileMenu from '../components/ProfileMenu';
-import EditorToolbar from '../components/EditorToolbar';
+import { docsApi } from '../lib/docsApi';
+import { apiError } from '../config/api';
+import { YJS_URL } from '../config/env';
+import DocumentWorkspace from '../components/editor/DocumentWorkspace';
+import NotFound from './NotFound';
+import '../styles/editor.css';
+import '../styles/prose.css';
 
-export default function Editor() {
-  const { id: docId } = useParams();
-  const navigate = useNavigate();
-  const { user, token } = useAuth();
-  const socketRef = useRef(null);
-  const [title, setTitle] = useState(
-    'Untitled document'
-  );
-  const [roomUsers, setRoomUsers] =
-    useState([]);
-  const [status, setStatus] =
-    useState('Connecting...');
-  const [shareOpen, setShareOpen] =
-    useState(false);
-  const [editorInstance, setEditorInstance] =
-  useState(null);
-  const [saveStatus, setSaveStatus] =
-  useState('Saved');
+const TOKEN_REFRESH_MS = 4 * 60 * 1000;
 
-  // API instance
-  const api = axios.create({
-    baseURL:
-      process.env.REACT_APP_API_URL,
-
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  // ─── Socket Connection ───────────────────────
-
-  useEffect(() => {
-    if (!token) return;
-
-    const socket = io(
-      process.env.REACT_APP_SOCKET_URL,
-      {
-        auth: {
-          token,
-        },
-      }
-    );
-
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      socket.emit('join-document', {
-        docId,
-      });
-
-      setStatus('Connected');
-    });
-
-    // Load document metadata
-    socket.on(
-      'load-document',
-      (data) => {
-        setTitle(
-          data.title ||
-            'Untitled document'
-        );
-      }
-    );
-
-    // Active collaborators
-    socket.on('room-users', (users) => {
-      // Remove current user
-      const filtered = users.filter(
-        (u) => u.uid !== user.uid
-      );
-
-      setRoomUsers(filtered);
-    });
-
-    socket.on(
-      'connect_error',
-      (err) => {
-        console.error(err);
-
-        setStatus(
-          'Connection failed'
-        );
-      }
-    );
-
-    // Fetch title initially
-    api
-      .get(`/documents/${docId}`)
-      .then((res) => {
-        setTitle(
-          res.data.title
-        );
-
-        window.loadedContent =
-      res.data.content;
-  })
-      .catch(console.error);
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [token, docId]);
-
-  // ─── Save title changes ──────────────────────
-
-  const handleTitleChange = async (
-    e
-  ) => {
-    const newTitle = e.target.value;
-    
-
-    setTitle(newTitle);
-
-    try {
-      await api.patch(
-        `/documents/${docId}`,
-        {
-          title: newTitle,
-        }
-      );
-
-      setStatus('Saved');
-    } catch (err) {
-      console.error(err);
-
-      setStatus('Save failed');
-    }
-  };
-  useEffect(() => {
-    if (!editorInstance) return;
-
-    const saveDocument = async () => {
-      try {
-        await api.patch(
-          `/documents/${docId}`,
-          {
-            title,
-            content:
-              editorInstance.getJSON(),
-          }
-        );
-
-        setSaveStatus('Saved');
-      } catch (err) {
-        console.error(err);
-
-        setSaveStatus(
-          'Save failed'
-        );
-      }
-    };
-
-    editorInstance.on(
-      'update',
-      () => {
-        setSaveStatus('Saving...');
-
-        clearTimeout(
-          window.saveTimer
-        );
-
-        window.saveTimer =
-          setTimeout(
-            saveDocument,
-            1000
-          );
-      }
-    );
-  }, [
-    editorInstance,
-    docId,
-    title,
-  ]);
-  // useEffect(() => {
-  //   if (!editorInstance) return;
-
-  //   editorInstance.on(
-  //     'update',
-  //     () => {
-  //       setSaveStatus('Saving...');
-
-  //       clearTimeout(
-  //         window.saveTimer
-  //       );
-
-  //       window.saveTimer =
-  //         setTimeout(() => {
-  //           setSaveStatus(
-  //             'Saved'
-  //           );
-  //         }, 800);
-  //     }
-  //   );
-  // }, [editorInstance]);
-
+function EditorSkeleton() {
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#f1f3f4',
-        fontFamily:
-          'Inter, sans-serif',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          background: '#fff',
-          borderBottom:
-            '1px solid #e0e0e0',
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent:
-            'space-between',
-          height: 72,
-          position: 'sticky',
-          top: 0,
-          zIndex: 1000,
-        }}
-      >
-        {/* Left */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 18,
-          }}
-        >
-          <span
-            onClick={() =>
-              navigate('/')
-            }
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: '#1a73e8',
-              cursor: 'pointer',
-            }}
-          >
-            CollabDocs
-          </span>
-
-          <input
-            value={title}
-            onChange={
-              handleTitleChange
-            }
-            style={{
-              border: 'none',
-              outline: 'none',
-              fontSize: 18,
-              background:
-                'transparent',
-              color: '#202124',
-              minWidth: 240,
-              fontWeight: 500,
-            }}
-          />
+    <div className="workspace">
+      <div className="ed-topbar glass">
+        <div className="ed-topbar__left">
+          <div className="skeleton" style={{ width: 30, height: 30, borderRadius: 9 }} />
+          <div className="skeleton" style={{ width: 220, height: 22 }} />
         </div>
-
-        {/* Right */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent:
-              'flex-end',
-            gap: 16,
-          }}
-        >
-          {/* Collaborators */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            {roomUsers.map(
-              (u, i) => (
-                <img
-                  key={i}
-                  src={
-                    u.picture ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      u.name
-                    )}`
-                  }
-                  alt={u.name}
-                  title={`${u.name} (${u.email})`}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius:
-                      '50%',
-                    objectFit:
-                      'cover',
-                    border:
-                      '2px solid white',
-                    marginLeft:
-                      i === 0
-                        ? 0
-                        : -10,
-                    boxShadow:
-                      '0 2px 6px rgba(0,0,0,0.15)',
-                  }}
-                />
-              )
-            )}
-          </div>
-
-          {/* Status */}
-          <span
-            style={{
-              fontSize: 13,
-              color: '#777',
-            }}
-          >
-            {status}
-          </span>
-
-          {/* Share Dropdown */}
-          <div
-            style={{
-              position: 'relative',
-            }}
-          >
-            <button
-              onClick={() =>
-                setShareOpen(
-                  !shareOpen
-                )
-              }
-              style={{
-                padding:
-                  '10px 18px',
-                background:
-                  '#1a73e8',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                cursor: 'pointer',
-                fontWeight: 500,
-              }}
-            >
-              Share
-            </button>
-
-            {shareOpen && (
-              <div
-                style={{
-                  position:
-                    'absolute',
-                  right: 0,
-                  top: 52,
-                  width: 240,
-                  background:
-                    '#fff',
-                  borderRadius: 14,
-                  boxShadow:
-                    '0 10px 30px rgba(0,0,0,0.12)',
-                  padding: 12,
-                  zIndex: 99999,
-                }}
-              >
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      window.location
-                        .href
-                    );
-
-                    setStatus(
-                      'Link copied'
-                    );
-
-                    setShareOpen(
-                      false
-                    );
-
-                    setTimeout(
-                      () => {
-                        setStatus(
-                          'Connected'
-                        );
-                      },
-                      2000
-                    );
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: 12,
-                    border: 'none',
-                    borderRadius: 10,
-                    background:
-                      '#f1f3f4',
-                    cursor: 'pointer',
-                    textAlign:
-                      'left',
-                    fontSize: 14,
-                  }}
-                >
-                  🔗 Copy document
-                  link
-                </button>
-              </div>
-            )}
-          </div>
-          <span
-            style={{
-              fontSize: 13,
-              color: '#777',
-            }}
-          >
-            {saveStatus}
-          </span>
-
-          {/* Current User */}
-          <ProfileMenu
-            user={user}
-          />
-        </div>
+        <div className="skeleton" style={{ width: 96, height: 36, borderRadius: 10 }} />
       </div>
-      {/* Toolbar */}
-      <EditorToolbar
-        editor={editorInstance}
-        title={title}
-      />
-
-      {/* Editor */}
-      <div
-        style={{
-          maxWidth: 900,
-          margin: '40px auto',
-          padding: '0 24px',
-        }}
-      >
-        <div
-          style={{
-            background: '#fff',
-            borderRadius: 8,
-            minHeight: '80vh',
-            boxShadow:
-              '0 2px 8px rgba(0,0,0,0.08)',
-            // padding: '70px 90px',
-            border: '1px solid #e0e0e0',
-            backgroundImage:
-              'linear-gradient(to bottom, #ffffff, #fcfcfc)',
-          }}
-        >
-
-
-          {/* Document Page */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              // padding: '40px 0 80px',
-              background: '#f1f3f4',
-              minHeight: '100vh',
-            }}
-          >
-            <div
-              style={{
-                width: '794px',
-                minHeight: '1123px',
-                background: '#fff',
-                boxShadow:
-                  '0 1px 8px rgba(0,0,0,0.15)',
-                padding:
-                  '20px 20px',
-                borderRadius: 4,
-              }}
-            >
-              <CollaborativeEditor
-                docId={docId}
-                onEditorReady={
-                  setEditorInstance
-                }
-              />
-            </div>
+      <div className="ed-body">
+        <main className="ed-canvas">
+          <div className="ed-page ed-page--loading">
+            <div className="skeleton" style={{ width: '58%', height: 34, marginBottom: 28 }} />
+            {[92, 88, 95, 70, 0, 84, 90, 62].map((w, i) => (
+              <div key={i} className="skeleton" style={{ width: `${w}%`, height: w ? 14 : 8, marginBottom: 14, opacity: w ? 1 : 0 }} />
+            ))}
           </div>
-          {/* <div
-            style={{
-              maxWidth: 900,
-              margin: '40px auto',
-              padding: '0 24px',
-            }}
-          >
-            <div
-              style={{
-                background: '#fff',
-                borderRadius: 8,
-                minHeight: '80vh',
-                boxShadow:
-                  '0 2px 8px rgba(0,0,0,0.08)',
-                padding: '70px 90px',
-                border: '1px solid #e0e0e0',
-                backgroundImage:
-                  'linear-gradient(to bottom, #ffffff, #fcfcfc)',
-              }}
-            >
-              <CollaborativeEditor
-                docId={docId}
-                user={user}
-                onEditorReady={
-                  setEditorInstance
-                }
-              />
-            </div>
-          </div> */}
-          {/* <EditorToolbar
-            editor={editorInstance}
-          />
-          <CollaborativeEditor
-            docId={docId}
-            user={user}
-            onEditorReady={
-              setEditorInstance
-            }
-          /> */}
-        </div>
+        </main>
       </div>
     </div>
   );
+}
+
+export default function Editor() {
+  const { id } = useParams();
+  const { getToken } = useAuth();
+  const [load, setLoad] = useState({ status: 'loading', doc: null, error: '' });
+  const [session, setSession] = useState(null);
+
+  // 1) Load metadata through the API — this also adds the visitor as a collaborator.
+  useEffect(() => {
+    let cancelled = false;
+    setLoad({ status: 'loading', doc: null, error: '' });
+
+    docsApi
+      .get(id)
+      .then((doc) => !cancelled && setLoad({ status: 'ready', doc, error: '' }))
+      .catch((err) => {
+        if (cancelled) return;
+        const code = err.response?.status;
+        const status = code === 404 || code === 400 ? 'not-found' : code === 403 ? 'forbidden' : 'error';
+        setLoad({ status, doc: null, error: apiError(err) });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const readyId = load.status === 'ready' ? load.doc.id : null;
+
+  // 2) Open the realtime connection once we know the document exists.
+  useEffect(() => {
+    if (!readyId) return undefined;
+
+    let cancelled = false;
+    let provider = null;
+    let interval = null;
+    const ydoc = new Y.Doc();
+
+    // Tokens expire hourly; keep the reconnect URL fresh so drops recover silently.
+    const refreshUrl = async () => {
+      try {
+        const token = await getToken();
+        if (provider && token) provider.url = `${YJS_URL}/${readyId}?token=${encodeURIComponent(token)}`;
+      } catch {
+        /* next attempt will retry */
+      }
+    };
+
+    getToken()
+      .catch(() => null)
+      .then((token) => {
+        if (cancelled) return;
+        provider = new WebsocketProvider(YJS_URL, readyId, ydoc, {
+          params: token ? { token } : {},
+          maxBackoffTime: 5000,
+        });
+        provider.on('status', ({ status }) => status === 'disconnected' && refreshUrl());
+        interval = setInterval(refreshUrl, TOKEN_REFRESH_MS);
+        setSession({ id: readyId, ydoc, provider });
+      });
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      provider?.destroy();
+      ydoc.destroy();
+    };
+  }, [readyId, getToken]);
+
+  if (load.status === 'not-found') {
+    return <NotFound emoji="🔍" title="Document not found" message="It may have been deleted, or the link might be mistyped." />;
+  }
+  if (load.status === 'forbidden') {
+    return <NotFound emoji="🔒" title="No access" message="You don't have access to this document. Ask the owner to share the link again." />;
+  }
+  if (load.status === 'error') {
+    return <NotFound emoji="⚡" title="Couldn't open document" message={load.error} />;
+  }
+  if (load.status !== 'ready' || !session || session.id !== load.doc.id) {
+    return <EditorSkeleton />;
+  }
+
+  return <DocumentWorkspace key={session.id} doc={load.doc} ydoc={session.ydoc} provider={session.provider} />;
 }

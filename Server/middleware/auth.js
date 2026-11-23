@@ -1,34 +1,13 @@
-import admin from '../config/firebase.js';
+import { verifyAuthToken } from '../lib/auth.js';
 
 export async function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  // No token
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({
-      error: 'Unauthorized',
-    });
-  }
-
-  const token = authHeader.split('Bearer ')[1];
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
 
   try {
-    // Verify Firebase token
-    const decoded = await admin.auth().verifyIdToken(token);
-
-    req.user = {
-      uid: decoded.uid,
-      email: decoded.email,
-      name: decoded.name,
-      picture: decoded.picture,
-    };
-
+    req.user = await verifyAuthToken(token);
     next();
   } catch (err) {
-    console.error(err);
-
-    return res.status(401).json({
-      error: 'Invalid token',
-    });
+    res.status(err.status || 401).json({ error: err.message || 'Unauthorized' });
   }
 }

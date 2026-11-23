@@ -1,493 +1,674 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  ArrowUpDown,
+  Check,
+  Clock,
+  Copy,
+  ExternalLink,
+  LayoutGrid,
+  Link2,
+  Pencil,
+  Plus,
+  Rows3,
+  Search,
+  Star,
+  Trash2,
+  UserMinus,
+  Users,
+  Ellipsis,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
-import axios from 'axios';
+import { useToast } from '../context/ToastContext';
+import { useCommands, usePalette } from '../components/CommandPalette';
+import { docsApi, docUrl } from '../lib/docsApi';
+import { apiError } from '../config/api';
+import { TEMPLATES } from '../lib/templates';
+import { colorFor, copyText, firstName, formatNumber, greeting, modKey, readStorage, timeAgo, writeStorage } from '../lib/utils';
+import Logo from '../components/ui/Logo';
+import Dropdown from '../components/ui/Dropdown';
+import { Avatar, AvatarStack } from '../components/ui/Avatar';
+import { ConfirmDialog, PromptDialog } from '../components/ui/Modal';
 import ProfileMenu from '../components/ProfileMenu';
+import ThemeToggle from '../components/ThemeToggle';
+import ShortcutsModal from '../components/ShortcutsModal';
+import '../styles/home.css';
+
+const SCOPES = [
+  { id: 'all', label: 'All' },
+  { id: 'owned', label: 'Owned by me' },
+  { id: 'shared', label: 'Shared with me' },
+  { id: 'starred', label: 'Starred' },
+];
+
+const SORTS = [
+  { id: 'updated', label: 'Last edited' },
+  { id: 'created', label: 'Date created' },
+  { id: 'title', label: 'Title (A–Z)' },
+];
+
+const SORTERS = {
+  updated: (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
+  created: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+  title: (a, b) => (a.title || '').localeCompare(b.title || ''),
+};
+
+function editedLabel(doc, uid) {
+  const by = doc.lastEditedBy?.uid && doc.lastEditedBy.uid !== uid ? ` by ${firstName(doc.lastEditedBy.name)}` : '';
+  return `Edited ${timeAgo(doc.updatedAt)}${by}`;
+}
+
+const spotlight = (event) => {
+  const rect = event.currentTarget.getBoundingClientRect();
+  event.currentTarget.style.setProperty('--mx', `${event.clientX - rect.left}px`);
+  event.currentTarget.style.setProperty('--my', `${event.clientY - rect.top}px`);
+};
 
 export default function Home() {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { user, token } = useAuth();
-  const [docs, setDocs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
+  const toast = useToast();
+  const { openPalette } = usePalette();
 
-  const api = axios.create({
-    baseURL: process.env.REACT_APP_API_URL,
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const [docs, setDocs] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [scope, setScope] = useState('all');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState(() => readStorage('collabdocs.sort', 'updated'));
+  const [view, setView] = useState(() => readStorage('collabdocs.view', 'grid'));
+  const [creating, setCreating] = useState(null);
+  const [dialog, setDialog] = useState(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      setDocs(await docsApi.list('all'));
+      setLoadError('');
+    } catch (err) {
+      setLoadError(apiError(err));
+      setDocs((current) => current || []);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchDocs();
-  }, [token]);
+    document.title = 'Documents · CollabDocs';
+    load();
+    // Collaborators may have edited things while this tab was in the background.
+    window.addEventListener('focus', load);
+    return () => window.removeEventListener('focus', load);
+  }, [load]);
 
-  const fetchDocs = async () => {
+  useEffect(() => writeStorage('collabdocs.sort', sort), [sort]);
+  useEffect(() => writeStorage('collabdocs.view', view), [view]);
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === '/') {
+        event.preventDefault();
+        setShowShortcuts((s) => !s);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const counts = useMemo(() => {
+    const list = docs || [];
+    return {
+      all: list.length,
+      owned: list.filter((d) => d.isOwner).length,
+      shared: list.filter((d) => !d.isOwner).length,
+      starred: list.filter((d) => d.starred).length,
+      words: list.reduce((sum, d) => sum + (d.wordCount || 0), 0),
+    };
+  }, [docs]);
+
+  const visible = useMemo(() => {
+    let list = docs || [];
+    if (scope === 'owned') list = list.filter((d) => d.isOwner);
+    if (scope === 'shared') list = list.filter((d) => !d.isOwner);
+    if (scope === 'starred') list = list.filter((d) => d.starred);
+
+    const q = query.trim().toLowerCase();
+    if (q) list = list.filter((d) => `${d.title} ${d.preview || ''}`.toLowerCase().includes(q));
+
+    return [...list].sort(SORTERS[sort] || SORTERS.updated);
+  }, [docs, scope, query, sort]);
+
+  const createDoc = useCallback(
+    async (template) => {
+      setCreating(template?.id || 'blank');
+      try {
+        const payload = template ? { icon: template.icon, ...template.build() } : {};
+        const doc = await docsApi.create(payload);
+        navigate(`/doc/${doc.id}`);
+      } catch (err) {
+        toast.error(apiError(err));
+        setCreating(null);
+      }
+    },
+    [navigate, toast]
+  );
+
+  const patchLocal = (id, patch) => setDocs((list) => list.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+
+  const actions = {
+    open: (doc) => navigate(`/doc/${doc.id}`),
+    openNewTab: (doc) => window.open(`/doc/${doc.id}`, '_blank', 'noopener'),
+    star: async (doc) => {
+      patchLocal(doc.id, { starred: !doc.starred });
+      try {
+        await docsApi.star(doc.id, !doc.starred);
+      } catch (err) {
+        patchLocal(doc.id, { starred: doc.starred });
+        toast.error(apiError(err));
+      }
+    },
+    duplicate: async (doc) => {
+      try {
+        const copy = await docsApi.duplicate(doc.id);
+        setDocs((list) => [copy, ...list]);
+        toast.success(`Duplicated “${doc.title}”`);
+      } catch (err) {
+        toast.error(apiError(err));
+      }
+    },
+    copyLink: async (doc) => {
+      await copyText(docUrl(doc.id));
+      toast.success('Link copied — anyone with it can join after signing in');
+    },
+    rename: (doc) => setDialog({ type: 'rename', doc }),
+    remove: (doc) => setDialog({ type: doc.isOwner ? 'delete' : 'leave', doc }),
+  };
+
+  const runDialog = async (fn, success) => {
     try {
-      const res = await api.get('/documents');
-      setDocs(res.data);
+      await fn();
+      setDialog(null);
+      if (success) toast.success(success);
     } catch (err) {
-      console.error(err);
+      toast.error(apiError(err));
     }
   };
 
-  const createDocument = async () => {
-    setLoading(true);
-    try {
-      const res = await api.post('/documents');
-      navigate(`/doc/${res.data.id}`);
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
-    }
-  };
+  const paletteCommands = useMemo(
+    () =>
+      TEMPLATES.map((template) => ({
+        id: `template-${template.id}`,
+        group: 'Actions',
+        title: `New from template: ${template.name}`,
+        emoji: template.icon,
+        keywords: `create ${template.description}`,
+        run: () => createDoc(template),
+      })),
+    [createDoc]
+  );
+  useCommands('home', paletteCommands);
 
-  // const handleSignOut = () => signOut(auth);
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error(err);
-    }
+  const emptyCopy = {
+    all: ['Your workspace is a blank canvas', 'Create your first document or start from a template above.'],
+    owned: ["You haven't created anything yet", 'Hit “New” or pick a template to get going.'],
+    shared: ['Nothing shared with you yet', 'When a teammate sends you a doc link, it shows up here automatically.'],
+    starred: ['No starred documents', 'Star the docs you open most and they’ll live here.'],
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#f8f9fa',
-        fontFamily: 'sans-serif',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          background: '#fff',
-          borderBottom: '1px solid #e0e0e0',
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: 70,
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-        }}
-      >
-        {/* Left */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 10,
-              background: '#1a73e8',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: 18,
-            }}
-          >
-            C
-          </div>
+    <div className="home">
+      <div className="home-glow" aria-hidden="true" />
 
-          <div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 22,
-                color: '#202124',
-              }}
-            >
-              CollabDocs
-            </h1>
+      <header className="app-header glass">
+        <div className="app-header__inner">
+          <Link to="/" className="logo-link" aria-label="CollabDocs home">
+            <Logo withText subtitle="Realtime workspace" />
+          </Link>
 
-            <p
-              style={{
-                margin: 0,
-                fontSize: 12,
-                color: '#777',
-              }}
-            >
-              Real-time collaboration
-            </p>
+          <button type="button" className="search-trigger" onClick={openPalette} aria-label="Search">
+            <Search />
+            <span>Search or jump to…</span>
+            <span className="kbd-group">
+              <kbd>{modKey}</kbd>
+              <kbd>K</kbd>
+            </span>
+          </button>
+
+          <div className="header-actions">
+            <ThemeToggle />
+            <button type="button" className="btn btn-primary hide-sm" onClick={() => createDoc()} disabled={!!creating}>
+              {creating === 'blank' ? <span className="spinner" /> : <Plus />}
+              New
+            </button>
+            <ProfileMenu onShowShortcuts={() => setShowShortcuts(true)} />
           </div>
         </div>
+      </header>
 
-        {/* Right */}
-        <ProfileMenu user={user} />
-        {/* <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              background: '#f1f3f4',
-              padding: '6px 12px',
-              borderRadius: 999,
-            }}
-          >
-            <img
-              src={
-                user.photoURL ||
-                'https://ui-avatars.com/api/?name=' +
-                encodeURIComponent(user.displayName || 'User')
-              }
-              alt="avatar"
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: '50%',
-                objectFit: 'cover',
-              }}
-            />
+      <main className="home-main">
+        <section className="home-hero">
+          <h1 className="display home-greeting animate-fade-up">
+            {greeting()}, <em className="text-gradient">{firstName(user.displayName)}</em>
+          </h1>
+          <p className="home-stats animate-fade-up" style={{ '--i': 1 }}>
+            {docs ? (
+              <>
+                <span>
+                  <b>{counts.all}</b> {counts.all === 1 ? 'document' : 'documents'}
+                </span>
+                <span>
+                  <b>{counts.shared}</b> shared with you
+                </span>
+                <span>
+                  <b>{formatNumber(counts.words)}</b> words written
+                </span>
+              </>
+            ) : (
+              <span>Warming up your workspace…</span>
+            )}
+          </p>
+        </section>
 
-            <div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#202124',
-                }}
+        <section className="home-section">
+          <div className="section-head">
+            <h2>Start something new</h2>
+            <span className="muted">Blank page or a head start</span>
+          </div>
+
+          <div className="templates">
+            <button
+              type="button"
+              className="template template--blank animate-fade-up"
+              onClick={() => createDoc()}
+              disabled={!!creating}
+              onPointerMove={spotlight}
+            >
+              <div className="template__art">
+                {creating === 'blank' ? <span className="spinner" /> : <Plus />}
+              </div>
+              <div className="template__name">Blank document</div>
+              <div className="template__desc">Start from scratch</div>
+            </button>
+
+            {TEMPLATES.map((template, index) => (
+              <button
+                type="button"
+                key={template.id}
+                className="template animate-fade-up"
+                style={{ '--accent': template.accent, '--i': index + 1 }}
+                onClick={() => createDoc(template)}
+                disabled={!!creating}
+                onPointerMove={spotlight}
               >
-                {user.displayName}
+                <div className="template__art">
+                  <span className="template__emoji">{template.icon}</span>
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                  {creating === template.id && (
+                    <span className="template__busy">
+                      <span className="spinner" />
+                    </span>
+                  )}
+                </div>
+                <div className="template__name">{template.name}</div>
+                <div className="template__desc">{template.description}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="home-section">
+          <div className="docs-toolbar">
+            <div className="tabs" role="tablist" aria-label="Filter documents">
+              {SCOPES.map((s) => (
+                <button
+                  type="button"
+                  key={s.id}
+                  role="tab"
+                  aria-selected={scope === s.id}
+                  className={`tab ${scope === s.id ? 'is-active' : ''}`}
+                  onClick={() => setScope(s.id)}
+                >
+                  {s.id === 'starred' && <Star />}
+                  {s.label}
+                  {docs && <span className="tab-count">{counts[s.id]}</span>}
+                </button>
+              ))}
+            </div>
+
+            <div className="docs-controls">
+              <div className="input-wrap docs-filter">
+                <Search />
+                <input
+                  className="input"
+                  placeholder="Filter documents…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Filter documents"
+                />
               </div>
 
-              <div
-                style={{
-                  fontSize: 11,
-                  color: '#666',
-                }}
+              <Dropdown
+                width={190}
+                trigger={({ toggle }) => (
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={toggle}>
+                    <ArrowUpDown />
+                    <span className="hide-sm">{SORTS.find((s) => s.id === sort)?.label}</span>
+                  </button>
+                )}
               >
-                {user.email}
+                {({ close }) => (
+                  <>
+                    <div className="menu-label">Sort by</div>
+                    {SORTS.map((s) => (
+                      <button
+                        type="button"
+                        key={s.id}
+                        className={`menu-item ${sort === s.id ? 'is-selected' : ''}`}
+                        onClick={() => {
+                          setSort(s.id);
+                          close();
+                        }}
+                      >
+                        {s.label}
+                        {sort === s.id && <Check style={{ marginLeft: 'auto' }} />}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </Dropdown>
+
+              <div className="view-toggle" role="group" aria-label="Layout">
+                <button
+                  type="button"
+                  className={view === 'grid' ? 'is-active' : ''}
+                  onClick={() => setView('grid')}
+                  aria-label="Grid view"
+                >
+                  <LayoutGrid />
+                </button>
+                <button
+                  type="button"
+                  className={view === 'list' ? 'is-active' : ''}
+                  onClick={() => setView('list')}
+                  aria-label="List view"
+                >
+                  <Rows3 />
+                </button>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '10px 16px',
-              borderRadius: 8,
-              border: 'none',
-              background: '#e53935',
-              color: '#fff',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
-            Logout
-          </button>
-        </div> */}
-      </div>
+          {loadError && (
+            <div className="banner banner--error">
+              <span>{loadError}</span>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={load}>
+                Retry
+              </button>
+            </div>
+          )}
 
-      {/* Main Content */}
-      <div
-        style={{
-          maxWidth: 1000,
-          margin: '0 auto',
-          padding: '40px 24px',
-        }}
-      >
-        {/* Create Document */}
-        <div
-          style={{
-            marginBottom: 40,
-          }}
-        >
-          <p
-            style={{
-              color: '#666',
-              fontSize: 14,
-              marginBottom: 16,
-            }}
-          >
-            Start a new document
-          </p>
-
-          <button
-            onClick={createDocument}
-            disabled={loading}
-            style={{
-              width: 140,
-              height: 180,
-              border: '1px solid #ddd',
-              borderRadius: 10,
-              background: '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            }}
-          >
-            <span
-              style={{
-                fontSize: 42,
-                color: '#1a73e8',
-              }}
-            >
-              +
-            </span>
-
-            <span
-              style={{
-                fontSize: 14,
-                color: '#444',
-              }}
-            >
-              {loading
-                ? 'Creating...'
-                : 'Blank Document'}
-            </span>
-          </button>
-        </div>
-        <input
-          placeholder="Search documents..."
-          value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
-          style={{
-            width: '100%',
-            padding: 14,
-            borderRadius: 10,
-            border: '1px solid #ddd',
-            marginBottom: 24,
-          }}
-        />
-
-        {/* Recent Documents */}
-        <div>
-          <p
-            style={{
-              color: '#666',
-              fontSize: 14,
-              marginBottom: 16,
-            }}
-          >
-            Recent documents
-          </p>
-
-          {docs.length === 0 ? (
-            <div
-              style={{
-                color: '#999',
-                fontSize: 14,
-              }}
-            >
-              No documents yet
+          {docs === null ? (
+            <DocsSkeleton view={view} />
+          ) : visible.length === 0 ? (
+            <div className="empty animate-fade-up">
+              <div className="empty-art" aria-hidden="true">
+                <span>📄</span>
+                <span>✨</span>
+                <span>📝</span>
+              </div>
+              <h3>{query ? `Nothing matches “${query}”` : emptyCopy[scope][0]}</h3>
+              <p>{query ? 'Try a different word, or clear the filter.' : emptyCopy[scope][1]}</p>
+              {query ? (
+                <button type="button" className="btn btn-secondary" onClick={() => setQuery('')}>
+                  Clear filter
+                </button>
+              ) : (
+                (scope === 'all' || scope === 'owned') && (
+                  <button type="button" className="btn btn-primary" onClick={() => createDoc()} disabled={!!creating}>
+                    <Plus /> New document
+                  </button>
+                )
+              )}
+            </div>
+          ) : view === 'grid' ? (
+            <div className="doc-grid">
+              {visible.map((doc, index) => (
+                <DocCard key={doc.id} doc={doc} index={index} uid={user.uid} actions={actions} />
+              ))}
             </div>
           ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fill, minmax(220px, 1fr))',
-                gap: 20,
-              }}
-              >
-                {/* <input
-                  placeholder="Search documents..."
-                  value={search}
-                  onChange={(e) =>
-                    setSearch(e.target.value)
-                  }
-                  style={{
-                    width: '100%',
-                    padding: 14,
-                    borderRadius: 10,
-                    border: '1px solid #ddd',
-                    marginBottom: 24,
-                  }}
-                /> */}
-                {docs
-                  .filter((doc) =>
-                    doc.title
-                      ?.toLowerCase()
-                      .includes(
-                        search.toLowerCase()
-                      )
-                  )
-                  .map((doc) => (
-                <div
-                  key={doc._id}
-                  onClick={() =>
-                    navigate(`/doc/${doc._id}`)
-                  }
-                  style={{
-                    background: '#fff',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: 10,
-                    padding: 18,
-                    cursor: 'pointer',
-                    transition: '0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow =
-                      '0 4px 12px rgba(0,0,0,0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow =
-                      'none';
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 38,
-                      marginBottom: 10,
-                    }}
-                  >
-                    📄
-                  </div>
-
-                  {/* <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: '#202124',
-                      marginBottom: 6,
-                    }}
-                  >
-                    {doc.title}
-                  </div> */}
-
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: '#777',
-                    }}
-                  >
-                    {new Date(
-                      doc.updatedAt
-                    ).toLocaleDateString()}
-                  </div>
-                  <div
-                    key={doc._id}
-                  >
-                    <h3>{doc.title}</h3>
-
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-
-                        await api.delete(
-                          `/documents/${doc._id}`
-                        );
-
-                        fetchDocs();
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
+            <div className="doc-list card">
+              <div className="doc-row doc-row--head">
+                <span>Name</span>
+                <span className="hide-sm">Owner</span>
+                <span className="hide-sm">Last edited</span>
+                <span className="hide-sm">Words</span>
+                <span />
+              </div>
+              {visible.map((doc, index) => (
+                <DocRow key={doc.id} doc={doc} index={index} uid={user.uid} actions={actions} />
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
+
+      {dialog?.type === 'rename' && (
+        <PromptDialog
+          title="Rename document"
+          icon={Pencil}
+          label="Title"
+          initialValue={dialog.doc.title}
+          confirmLabel="Rename"
+          onCancel={() => setDialog(null)}
+          onSubmit={(title) =>
+            runDialog(async () => {
+              const updated = await docsApi.update(dialog.doc.id, { title });
+              patchLocal(dialog.doc.id, { title: updated.title, updatedAt: updated.updatedAt });
+            }, 'Renamed')
+          }
+        />
+      )}
+
+      {dialog?.type === 'delete' && (
+        <ConfirmDialog
+          title={`Delete “${dialog.doc.title}”?`}
+          message="This permanently removes the document for everyone it's shared with. This can't be undone."
+          confirmLabel="Delete forever"
+          icon={Trash2}
+          onCancel={() => setDialog(null)}
+          onConfirm={() =>
+            runDialog(async () => {
+              await docsApi.remove(dialog.doc.id);
+              setDocs((list) => list.filter((d) => d.id !== dialog.doc.id));
+            }, 'Document deleted')
+          }
+        />
+      )}
+
+      {dialog?.type === 'leave' && (
+        <ConfirmDialog
+          title={`Remove “${dialog.doc.title}” from your list?`}
+          message="You'll lose access until someone shares the link with you again. The document itself stays intact."
+          confirmLabel="Remove"
+          icon={UserMinus}
+          onCancel={() => setDialog(null)}
+          onConfirm={() =>
+            runDialog(async () => {
+              await docsApi.leave(dialog.doc.id);
+              setDocs((list) => list.filter((d) => d.id !== dialog.doc.id));
+            }, 'Removed from your documents')
+          }
+        />
+      )}
+
+      {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
     </div>
   );
-
-  // return (
-  //   <div style={{ minHeight: '100vh', background: '#f8f9fa', fontFamily: 'sans-serif' }}>
-  //     {/* Header */}
-  //     <div style={{
-  //       background: '#fff', borderBottom: '1px solid #e0e0e0',
-  //       padding: '0 24px', display: 'flex', alignItems: 'center',
-  //       justifyContent: 'space-between', height: 64
-  //     }}>
-  //       <h1 style={{ fontSize: 22, color: '#1a73e8', margin: 0 }}>CollabDocs</h1>
-  //       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-  //         <span style={{ fontSize: 14, color: '#555' }}>{user.displayName}</span>
-  //         <button
-  //           onClick={handleLogout}
-  //           style={{
-  //             padding: '8px 16px',
-  //             cursor: 'pointer',
-  //             borderRadius: 8,
-  //             border: 'none',
-  //             background: '#e53935',
-  //             color: '#fff',
-  //           }}
-  //         >
-  //           Logout
-  //         </button>
-  //         {/* <img
-  //           src={user.photoURL} alt="avatar"
-  //           style={{ width: 36, height: 36, borderRadius: '50%', cursor: 'pointer' }}
-  //           onClick={handleSignOut}
-  //           title="Click to sign out"
-  //         /> */}
-  //       </div>
-  //     </div>
-
-  //     {/* New doc button */}
-  //     <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
-  //       <div style={{ marginBottom: 32 }}>
-  //         <p style={{ color: '#666', fontSize: 14, marginBottom: 12 }}>Start a new document</p>
-  //         <button
-  //           onClick={createDocument}
-  //           disabled={loading}
-  //           style={{
-  //             width: 120, height: 156, border: '1px solid #e0e0e0',
-  //             borderRadius: 8, background: '#fff', cursor: 'pointer',
-  //             display: 'flex', flexDirection: 'column', alignItems: 'center',
-  //             justifyContent: 'center', gap: 8, fontSize: 13, color: '#555'
-  //           }}
-  //         >
-  //           <span style={{ fontSize: 36 }}>+</span>
-  //           {loading ? 'Creating...' : 'Blank document'}
-  //         </button>
-  //       </div>
-
-  //       {/* Recent docs */}
-  //       {docs.length > 0 && (
-  //         <div>
-  //           <p style={{ color: '#666', fontSize: 14, marginBottom: 12 }}>Recent documents</p>
-  //           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-  //             {docs.map((doc) => (
-  //               <div
-  //                 key={doc._id}
-  //                 onClick={() => navigate(`/doc/${doc._id}`)}
-  //                 style={{
-  //                   background: '#fff', border: '1px solid #e0e0e0',
-  //                   borderRadius: 8, padding: 16, cursor: 'pointer',
-  //                   transition: 'box-shadow 0.2s'
-  //                 }}
-  //                 onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'}
-  //                 onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
-  //               >
-  //                 <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-  //                 <div style={{ fontSize: 14, fontWeight: 500, color: '#333', marginBottom: 4 }}>
-  //                   {doc.title}
-  //                 </div>
-  //                 <div style={{ fontSize: 11, color: '#999' }}>
-  //                   {new Date(doc.updatedAt).toLocaleDateString()}
-  //                 </div>
-  //               </div>
-  //             ))}
-  //           </div>
-  //         </div>
-  //       )}
-  //     </div>
-  //   </div>
-  // );
 }
+
+function DocMenu({ doc, actions }) {
+  return (
+    <Dropdown
+      width={220}
+      trigger={({ toggle, open }) => (
+        <button
+          type="button"
+          className={`icon-btn icon-btn-sm doc-menu-trigger ${open ? 'is-active' : ''}`}
+          onClick={toggle}
+          aria-label="Document actions"
+        >
+          <Ellipsis />
+        </button>
+      )}
+    >
+      {({ close }) => {
+        const item = (fn) => () => {
+          close();
+          fn(doc);
+        };
+        return (
+          <>
+            <button type="button" className="menu-item" onClick={item(actions.openNewTab)}>
+              <ExternalLink /> Open in new tab
+            </button>
+            <button type="button" className="menu-item" onClick={item(actions.rename)}>
+              <Pencil /> Rename
+            </button>
+            <button type="button" className="menu-item" onClick={item(actions.duplicate)}>
+              <Copy /> Duplicate
+            </button>
+            <button type="button" className="menu-item" onClick={item(actions.copyLink)}>
+              <Link2 /> Copy link
+            </button>
+            <button type="button" className="menu-item" onClick={item(actions.star)}>
+              <Star /> {doc.starred ? 'Remove star' : 'Add star'}
+            </button>
+            <div className="menu-sep" />
+            <button type="button" className="menu-item danger" onClick={item(actions.remove)}>
+              {doc.isOwner ? (
+                <>
+                  <Trash2 /> Delete
+                </>
+              ) : (
+                <>
+                  <UserMinus /> Remove from my list
+                </>
+              )}
+            </button>
+          </>
+        );
+      }}
+    </Dropdown>
+  );
+}
+
+function DocCard({ doc, index, uid, actions }) {
+  return (
+    <article
+      className="doc-card animate-fade-up"
+      style={{ '--i': Math.min(index, 12), '--accent': colorFor(doc.id) }}
+      tabIndex={0}
+      onClick={() => actions.open(doc)}
+      onKeyDown={(e) => e.key === 'Enter' && actions.open(doc)}
+      onPointerMove={spotlight}
+    >
+      <div className="doc-card__paper">
+        <span className="doc-card__icon">{doc.icon || '📄'}</span>
+        <p className={`doc-card__preview ${doc.preview ? '' : 'is-empty'}`}>
+          {doc.preview || 'Empty document — click to start writing'}
+        </p>
+        <button
+          type="button"
+          className={`doc-card__star ${doc.starred ? 'is-on' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            actions.star(doc);
+          }}
+          aria-label={doc.starred ? 'Unstar' : 'Star'}
+        >
+          <Star />
+        </button>
+      </div>
+
+      <div className="doc-card__body">
+        <h3 className="doc-card__title" title={doc.title}>
+          {doc.title || 'Untitled document'}
+        </h3>
+        <div className="doc-card__meta">
+          <Clock /> {editedLabel(doc, uid)}
+        </div>
+        <div className="doc-card__foot">
+          <AvatarStack people={doc.members || []} max={3} size={24} />
+          {!doc.isOwner && (
+            <span className="badge">
+              <Users /> Shared
+            </span>
+          )}
+          <DocMenu doc={doc} actions={actions} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function DocRow({ doc, index, uid, actions }) {
+  return (
+    <div
+      className="doc-row animate-fade-up"
+      style={{ '--i': Math.min(index, 12) }}
+      tabIndex={0}
+      role="button"
+      onClick={() => actions.open(doc)}
+      onKeyDown={(e) => e.key === 'Enter' && actions.open(doc)}
+    >
+      <span className="doc-row__name">
+        <span className="doc-row__icon">{doc.icon || '📄'}</span>
+        <span style={{ minWidth: 0 }}>
+          <span className="doc-row__title">
+            {doc.title || 'Untitled document'}
+            {doc.starred && <Star className="doc-row__star" />}
+          </span>
+          <span className="doc-row__preview">{doc.preview || 'Empty document'}</span>
+        </span>
+      </span>
+      <span className="doc-row__owner hide-sm">
+        <Avatar name={doc.owner?.name} src={doc.owner?.picture} seed={doc.owner?.uid} size={22} />
+        {doc.isOwner ? 'You' : firstName(doc.owner?.name)}
+      </span>
+      <span className="muted hide-sm">{editedLabel(doc, uid).replace('Edited ', '')}</span>
+      <span className="muted hide-sm">{formatNumber(doc.wordCount)}</span>
+      <span className="doc-row__actions">
+        <DocMenu doc={doc} actions={actions} />
+      </span>
+    </div>
+  );
+}
+
+function DocsSkeleton({ view }) {
+  if (view === 'list') {
+    return (
+      <div className="doc-list card">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="doc-row">
+            <span className="skeleton" style={{ height: 34, width: '70%' }} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="doc-grid">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="doc-card doc-card--skeleton">
+          <div className="skeleton" style={{ height: 150, borderRadius: '16px 16px 0 0' }} />
+          <div style={{ padding: 16 }}>
+            <div className="skeleton" style={{ height: 16, width: '70%', marginBottom: 10 }} />
+            <div className="skeleton" style={{ height: 12, width: '45%' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
